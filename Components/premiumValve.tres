@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ComponentData" format=3 uid="uid://dk8wiw5ck6q0"]
+
+[ext_resource type="Texture2D" uid="uid://equx8xaa6yt3" path="res://Assets/fuse_active2.png" id="1_a7d3e"]
+[ext_resource type="Script" uid="uid://dryqbvseo8u2s" path="res://FirstTry/ComponentData.cs" id="1_khmhk"]
+
+[resource]
+script = ExtResource("1_khmhk")
+Type = 1
+Icon = ExtResource("1_a7d3e")
+metadata/_custom_type_script = "uid://dryqbvseo8u2s"

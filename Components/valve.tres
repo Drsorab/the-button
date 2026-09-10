@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ComponentData" format=3 uid="uid://cvtlrwcxnumy5"]
+
+[ext_resource type="Texture2D" uid="uid://dqo66iinb8r22" path="res://Assets/timer.png" id="1_tq6io"]
+[ext_resource type="Script" uid="uid://dryqbvseo8u2s" path="res://FirstTry/ComponentData.cs" id="1_yj6nx"]
+
+[resource]
+script = ExtResource("1_yj6nx")
+Icon = ExtResource("1_tq6io")
+GracePeriodModifier = 100.0
+metadata/_custom_type_script = "uid://dryqbvseo8u2s"

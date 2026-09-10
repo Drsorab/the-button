@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://xsgxcfruy5ci"]
+
+[ext_resource type="Script" uid="uid://be562yrdwhr4k" path="res://FirstTry/ComponentSlotUI.cs" id="1_y6wwo"]
+
+[node name="ComponentSlotUI" type="MarginContainer" unique_id=435108703]
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_y6wwo")
+
+[node name="SocketBase" type="TextureRect" parent="." unique_id=305904832]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ComponentIcon" type="TextureRect" parent="." unique_id=1629857573]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClickArea" type="Button" parent="." unique_id=1368105299]
+layout_mode = 2
+flat = true

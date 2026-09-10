@@ -1,0 +1,567 @@
+[gd_scene format=3 uid="uid://c6gsi6vhg1ioh"]
+
+[ext_resource type="Script" uid="uid://bkchd50ahv7ad" path="res://Permafrost/DayShiftManager.cs" id="1_6jcbh"]
+[ext_resource type="Texture2D" uid="uid://b0uiaaupiescd" path="res://Assets2/panel.jpg" id="2_ajdm4"]
+[ext_resource type="Script" uid="uid://dwv4ob8pvxybf" path="res://FirstTry/ShiftClock.cs" id="2_ttvea"]
+[ext_resource type="Texture2D" uid="uid://dwjgu417x1yod" path="res://Assets2/resources.jpg" id="3_ct3e5"]
+[ext_resource type="Texture2D" uid="uid://cep5t7cgn2ajn" path="res://Assets/clock.png" id="3_kiv7v"]
+[ext_resource type="Script" uid="uid://eceaoh4ert2p" path="res://Permafrost/TopBarView.cs" id="3_squru"]
+[ext_resource type="Texture2D" uid="uid://dykp3lqgooeb8" path="res://Assets/red_ring.png" id="4_42pny"]
+[ext_resource type="Texture2D" uid="uid://vg8r3g0aoioc" path="res://Assets/green_ring.png" id="5_ct3e5"]
+[ext_resource type="Texture2D" uid="uid://dyr84hifsgh0r" path="res://Assets/orange_ring.png" id="6_squru"]
+[ext_resource type="Texture2D" uid="uid://bu80pysaol74h" path="res://Assets/hand.png" id="7_ajdm4"]
+[ext_resource type="Script" uid="uid://coim24ccfwy1t" path="res://FirstTry/FuseRack.cs" id="8_krq04"]
+[ext_resource type="Texture2D" uid="uid://0l0r5tpcwtd3" path="res://Assets/fuse_slot2.png" id="9_es8m0"]
+[ext_resource type="Script" uid="uid://b842he8o18od8" path="res://FirstTry/FuseSlot.cs" id="10_l3ek6"]
+[ext_resource type="Texture2D" uid="uid://equx8xaa6yt3" path="res://Assets/fuse_active2.png" id="11_nbgrd"]
+[ext_resource type="Texture2D" uid="uid://di4g3ls32mkfb" path="res://Assets/fuse_burnt2.png" id="12_ovmj0"]
+[ext_resource type="Script" uid="uid://qwlb1ff4k21b" path="res://FirstTry/NixieTimer.cs" id="13_6f2yf"]
+[ext_resource type="Texture2D" uid="uid://bd66sc8nwmpxh" path="res://Assets/3partimer.png" id="14_pb8t0"]
+[ext_resource type="Texture2D" uid="uid://bl3xukx7cxjc0" path="res://Assets/timer numbers.png" id="15_h1e8v"]
+[ext_resource type="Script" uid="uid://ubxx3dj30gmj" path="res://Permafrost/DecompressionLever.cs" id="16_a0r7q"]
+[ext_resource type="Texture2D" uid="uid://ca4n0250dgrgi" path="res://Assets2/needle.png" id="17_42pny"]
+[ext_resource type="Script" uid="uid://cx323wh7p6ome" path="res://Permafrost/PressureGaugeView.cs" id="17_ct3e5"]
+[ext_resource type="Script" uid="uid://4wyjqrq1dasv" path="res://Permafrost/PressureSubsystem.cs" id="17_f28ve"]
+[ext_resource type="Script" uid="uid://b7h0blid27mkf" path="res://Permafrost/ResourceSubsystem.cs" id="18_1pra0"]
+[ext_resource type="Texture2D" uid="uid://dg8w3p0pj41la" path="res://Assets2/levers_3.png" id="22_krq04"]
+[ext_resource type="Script" uid="uid://b3ih6w75vtpqb" path="res://Permafrost/HotWeldOverdrive.cs" id="23_krq04"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lx8uf"]
+atlas = ExtResource("3_ct3e5")
+region = Rect2(545.9677, 52.17096, 697.42975, 683.55005)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vkib0"]
+atlas = ExtResource("3_ct3e5")
+region = Rect2(1575.0903, 55.968445, 660.7649, 683.55005)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mxrfc"]
+atlas = ExtResource("3_ct3e5")
+region = Rect2(1563.6978, 792.68353, 675.9551, 691.1451)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pypqc"]
+atlas = ExtResource("3_ct3e5")
+region = Rect2(538.37274, 796.481, 672.15753, 675.955)
+
+[node name="DayShiftManager" type="Node2D" unique_id=1655091377]
+
+[node name="DayShiftConsole" type="Control" parent="." unique_id=449103022 node_paths=PackedStringArray("_nixieTimer", "_shiftClock", "_pressureSubsystem", "_resourceSubsystem", "_fuseRack", "_decompressionLever", "_topBarView", "_hotWeldOverdrive", "_pressureGaugeView")]
+custom_minimum_size = Vector2(720, 1208)
+custom_maximum_size = Vector2(1080, 1920)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -4.0
+offset_right = 1084.0
+offset_bottom = 1916.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_6jcbh")
+_nixieTimer = NodePath("CenterChamberArea/NixieTimer")
+_shiftClock = NodePath("UpperConsoleArea/ShiftClock")
+_pressureSubsystem = NodePath("Subsystems/PressureSubsystem")
+_resourceSubsystem = NodePath("Subsystems/ResourceSubsystem")
+_fuseRack = NodePath("UpperConsoleArea/FuseRack")
+_decompressionLever = NodePath("LowerDeckArea/DecompressionLever")
+_topBarView = NodePath("TopBarContainer")
+_hotWeldOverdrive = NodePath("LowerDeckArea/DecompressionLever/HotWeldNode")
+_pressureGaugeView = NodePath("CenterChamberArea/PressureGauge")
+
+[node name="Background" type="TextureRect" parent="DayShiftConsole" unique_id=972553352]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_ajdm4")
+expand_mode = 1
+metadata/_edit_lock_ = true
+
+[node name="TopBarContainer" type="MarginContainer" parent="DayShiftConsole" unique_id=370118365]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = -3.0
+offset_top = 4.0
+offset_right = -3.0
+offset_bottom = 68.0
+grow_horizontal = 2
+script = ExtResource("3_squru")
+
+[node name="ResourcesHBox" type="HBoxContainer" parent="DayShiftConsole/TopBarContainer" unique_id=313155462]
+layout_mode = 2
+
+[node name="CoalDisplay" type="HBoxContainer" parent="DayShiftConsole/TopBarContainer/ResourcesHBox" unique_id=1994298341]
+layout_mode = 2
+size_flags_horizontal = 6
+
+[node name="Icon" type="TextureRect" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/CoalDisplay" unique_id=1880566165]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 11
+texture = SubResource("AtlasTexture_lx8uf")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Value" type="Label" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/CoalDisplay" unique_id=1064687042]
+layout_mode = 2
+size_flags_horizontal = 11
+theme_override_font_sizes/font_size = 20
+vertical_alignment = 1
+
+[node name="BatteryDisplay" type="HBoxContainer" parent="DayShiftConsole/TopBarContainer/ResourcesHBox" unique_id=244880595]
+layout_mode = 2
+size_flags_horizontal = 6
+
+[node name="Icon" type="TextureRect" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/BatteryDisplay" unique_id=1744286292]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 11
+texture = SubResource("AtlasTexture_vkib0")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Value" type="Label" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/BatteryDisplay" unique_id=586792953]
+layout_mode = 2
+size_flags_horizontal = 11
+theme_override_font_sizes/font_size = 20
+vertical_alignment = 1
+
+[node name="ScrapDisplay" type="HBoxContainer" parent="DayShiftConsole/TopBarContainer/ResourcesHBox" unique_id=1097769492]
+layout_mode = 2
+size_flags_horizontal = 6
+
+[node name="Icon" type="TextureRect" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/ScrapDisplay" unique_id=100093503]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 11
+texture = SubResource("AtlasTexture_mxrfc")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Value" type="Label" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/ScrapDisplay" unique_id=1249401341]
+layout_mode = 2
+size_flags_horizontal = 11
+theme_override_font_sizes/font_size = 20
+vertical_alignment = 1
+
+[node name="TempDisplay" type="HBoxContainer" parent="DayShiftConsole/TopBarContainer/ResourcesHBox" unique_id=1628539030]
+layout_mode = 2
+size_flags_horizontal = 6
+
+[node name="Icon" type="TextureRect" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/TempDisplay" unique_id=174320287]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 11
+texture = SubResource("AtlasTexture_pypqc")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Value" type="Label" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/TempDisplay" unique_id=1250405464]
+layout_mode = 2
+size_flags_horizontal = 11
+theme_override_font_sizes/font_size = 20
+vertical_alignment = 1
+
+[node name="UpperConsoleArea" type="Control" parent="DayShiftConsole" unique_id=2001764484]
+anchors_preset = 0
+offset_right = 1083.0
+offset_bottom = 651.0
+metadata/_edit_lock_ = true
+
+[node name="ShiftClock" type="Control" parent="DayShiftConsole/UpperConsoleArea" unique_id=991506342]
+anchors_preset = 0
+offset_left = 609.0
+offset_top = 433.0
+offset_right = 1011.0
+offset_bottom = 782.0
+script = ExtResource("2_ttvea")
+
+[node name="DimBackdrop" type="ColorRect" parent="DayShiftConsole/UpperConsoleArea/ShiftClock" unique_id=1127100520]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="ClockCenter" type="Control" parent="DayShiftConsole/UpperConsoleArea/ShiftClock" unique_id=1491451560]
+anchors_preset = 0
+offset_left = 76.0
+offset_top = 2.0
+offset_right = 350.0
+offset_bottom = 241.0
+pivot_offset = Vector2(135, 123)
+
+[node name="ClockPlate" type="TextureRect" parent="DayShiftConsole/UpperConsoleArea/ShiftClock/ClockCenter" unique_id=1994457690]
+layout_mode = 0
+offset_left = 10.0
+offset_top = -6.0
+offset_right = 261.0
+offset_bottom = 252.53589
+mouse_filter = 2
+texture = ExtResource("3_kiv7v")
+expand_mode = 1
+
+[node name="RedRing" type="TextureRect" parent="DayShiftConsole/UpperConsoleArea/ShiftClock/ClockCenter" unique_id=1941182729]
+layout_mode = 0
+offset_left = 4.0
+offset_top = -9.0
+offset_right = 266.0
+offset_bottom = 253.0
+mouse_filter = 2
+texture = ExtResource("4_42pny")
+expand_mode = 1
+
+[node name="GreenRing" type="TextureProgressBar" parent="DayShiftConsole/UpperConsoleArea/ShiftClock/ClockCenter" unique_id=965911221]
+layout_mode = 0
+offset_left = 8.0
+offset_top = -9.060059
+offset_right = 264.0
+offset_bottom = 254.62585
+mouse_filter = 2
+value = 100.0
+fill_mode = 4
+radial_fill_degrees = 120.0
+nine_patch_stretch = true
+texture_progress = ExtResource("5_ct3e5")
+
+[node name="ScheduledRing" type="TextureProgressBar" parent="DayShiftConsole/UpperConsoleArea/ShiftClock/ClockCenter" unique_id=1681971262]
+layout_mode = 0
+offset_left = 8.0
+offset_top = -9.060059
+offset_right = 264.0
+offset_bottom = 254.62585
+mouse_filter = 2
+value = 100.0
+fill_mode = 4
+radial_fill_degrees = 120.0
+nine_patch_stretch = true
+texture_progress = ExtResource("6_squru")
+
+[node name="Pivot" type="Node2D" parent="DayShiftConsole/UpperConsoleArea/ShiftClock/ClockCenter" unique_id=512411997]
+position = Vector2(136, 123)
+
+[node name="HourHand" type="Sprite2D" parent="DayShiftConsole/UpperConsoleArea/ShiftClock/ClockCenter/Pivot" unique_id=1728476764]
+position = Vector2(-8, -64)
+scale = Vector2(0.2045452, 0.2045452)
+texture = ExtResource("7_ajdm4")
+centered = false
+
+[node name="ClickDetector" type="Button" parent="DayShiftConsole/UpperConsoleArea/ShiftClock" unique_id=1587206023]
+layout_mode = 0
+offset_left = 74.0
+offset_top = -18.0
+offset_right = 347.0
+offset_bottom = 228.0
+flat = true
+
+[node name="ConfirmButton" type="Button" parent="DayShiftConsole/UpperConsoleArea/ShiftClock" unique_id=1692918096]
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 0
+offset_left = 22.0
+offset_top = 241.0
+offset_right = 400.0
+offset_bottom = 291.0
+pivot_offset = Vector2(122, 122)
+theme_override_font_sizes/font_size = 25
+text = "Set Shift"
+
+[node name="CancelButton" type="Button" parent="DayShiftConsole/UpperConsoleArea/ShiftClock" unique_id=565543207]
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 0
+offset_left = 27.0
+offset_top = 293.0
+offset_right = 399.0
+offset_bottom = 337.0
+theme_override_font_sizes/font_size = 20
+text = "Cancel"
+
+[node name="FuseRack" type="Control" parent="DayShiftConsole/UpperConsoleArea" unique_id=2016896516]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -534.5
+offset_top = 373.0
+offset_right = -114.5
+offset_bottom = 569.0
+grow_horizontal = 2
+script = ExtResource("8_krq04")
+
+[node name="Slot0" type="TextureRect" parent="DayShiftConsole/UpperConsoleArea/FuseRack" unique_id=875162868]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -162.5
+offset_top = -83.5
+offset_right = -77.5
+offset_bottom = 58.9729
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("9_es8m0")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("10_l3ek6")
+ActiveFuseTexture = ExtResource("11_nbgrd")
+BurnedFuseTexture = ExtResource("12_ovmj0")
+
+[node name="FuseBuld" type="TextureButton" parent="DayShiftConsole/UpperConsoleArea/FuseRack/Slot0" unique_id=1133810]
+layout_mode = 0
+offset_left = 6.0
+offset_top = -22.70459
+offset_right = 77.0
+offset_bottom = 103.19232
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Slot1" type="TextureRect" parent="DayShiftConsole/UpperConsoleArea/FuseRack" unique_id=28700811]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -75.5
+offset_top = -83.5
+offset_right = 9.5
+offset_bottom = 58.9729
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("9_es8m0")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("10_l3ek6")
+ActiveFuseTexture = ExtResource("11_nbgrd")
+BurnedFuseTexture = ExtResource("12_ovmj0")
+
+[node name="FuseBuld" type="TextureButton" parent="DayShiftConsole/UpperConsoleArea/FuseRack/Slot1" unique_id=655459574]
+layout_mode = 0
+offset_left = 6.0
+offset_top = -22.70459
+offset_right = 77.0
+offset_bottom = 103.19232
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Slot2" type="TextureRect" parent="DayShiftConsole/UpperConsoleArea/FuseRack" unique_id=2014990061]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 11.5
+offset_top = -83.5
+offset_right = 96.5
+offset_bottom = 58.9729
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("9_es8m0")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("10_l3ek6")
+ActiveFuseTexture = ExtResource("11_nbgrd")
+BurnedFuseTexture = ExtResource("12_ovmj0")
+
+[node name="FuseBuld" type="TextureButton" parent="DayShiftConsole/UpperConsoleArea/FuseRack/Slot2" unique_id=2056272569]
+layout_mode = 0
+offset_left = 6.0
+offset_top = -22.70459
+offset_right = 77.0
+offset_bottom = 103.19232
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Slot3" type="TextureRect" parent="DayShiftConsole/UpperConsoleArea/FuseRack" unique_id=775583407]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 97.5
+offset_top = -83.5
+offset_right = 182.5
+offset_bottom = 58.9729
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("9_es8m0")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("10_l3ek6")
+ActiveFuseTexture = ExtResource("11_nbgrd")
+BurnedFuseTexture = ExtResource("12_ovmj0")
+
+[node name="FuseBuld" type="TextureButton" parent="DayShiftConsole/UpperConsoleArea/FuseRack/Slot3" unique_id=1182056547]
+layout_mode = 0
+offset_left = 6.0
+offset_top = -22.70459
+offset_right = 77.0
+offset_bottom = 103.19232
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="CenterChamberArea" type="Control" parent="DayShiftConsole" unique_id=944512555]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 324.0
+offset_bottom = 276.0
+metadata/_edit_lock_ = true
+
+[node name="NixieTimer" type="Control" parent="DayShiftConsole/CenterChamberArea" unique_id=1864745104]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -40.0
+offset_bottom = 40.0
+grow_horizontal = 2
+script = ExtResource("13_6f2yf")
+CoverOpenThreshold = 120.0
+GracePeriod = 15.0
+
+[node name="Chassis" type="TextureRect" parent="DayShiftConsole/CenterChamberArea/NixieTimer" unique_id=1280753027]
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -202.0
+offset_top = -27.0
+offset_right = 207.0
+offset_bottom = 308.0
+grow_horizontal = 2
+texture = ExtResource("14_pb8t0")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DigitsContainer" type="Control" parent="DayShiftConsole/CenterChamberArea/NixieTimer" unique_id=390587177]
+anchors_preset = 0
+offset_left = 108.0
+offset_top = 210.0
+offset_right = 674.0
+offset_bottom = 466.0
+
+[node name="DigitMinuteHundrends" type="Sprite2D" parent="DayShiftConsole/CenterChamberArea/NixieTimer/DigitsContainer" unique_id=1162345830]
+position = Vector2(177.55096, 112.37195)
+scale = Vector2(0.147, 0.147)
+texture = ExtResource("15_h1e8v")
+hframes = 10
+
+[node name="DigitMinuteTens" type="Sprite2D" parent="DayShiftConsole/CenterChamberArea/NixieTimer/DigitsContainer" unique_id=1304405400]
+position = Vector2(240.00003, 114)
+scale = Vector2(0.147, 0.147)
+texture = ExtResource("15_h1e8v")
+hframes = 10
+
+[node name="DigitMinuteUnits" type="Sprite2D" parent="DayShiftConsole/CenterChamberArea/NixieTimer/DigitsContainer" unique_id=979818881]
+position = Vector2(301, 116)
+scale = Vector2(0.14707655, 0.14707652)
+texture = ExtResource("15_h1e8v")
+hframes = 10
+
+[node name="DigitSecondTens" type="Sprite2D" parent="DayShiftConsole/CenterChamberArea/NixieTimer/DigitsContainer" unique_id=1001856708]
+position = Vector2(374, 115)
+scale = Vector2(0.14707655, 0.14707652)
+texture = ExtResource("15_h1e8v")
+hframes = 10
+
+[node name="DigitSecondUnits" type="Sprite2D" parent="DayShiftConsole/CenterChamberArea/NixieTimer/DigitsContainer" unique_id=1612290509]
+position = Vector2(436, 114)
+scale = Vector2(0.147, 0.147)
+texture = ExtResource("15_h1e8v")
+hframes = 10
+
+[node name="PressureGauge" type="TextureProgressBar" parent="DayShiftConsole/CenterChamberArea" unique_id=1611144943 node_paths=PackedStringArray("_needlePivot")]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("17_ct3e5")
+_needlePivot = NodePath("GaugeNeedle")
+
+[node name="GaugeNeedle" type="Node2D" parent="DayShiftConsole/CenterChamberArea/PressureGauge" unique_id=1885491086]
+position = Vector2(542, 760)
+rotation = -0.12566371
+
+[node name="Sprite2D" type="Sprite2D" parent="DayShiftConsole/CenterChamberArea/PressureGauge/GaugeNeedle" unique_id=201913354]
+position = Vector2(-39.00003, 38)
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("17_42pny")
+
+[node name="LowerDeckArea" type="Control" parent="DayShiftConsole" unique_id=576984663]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+metadata/_edit_lock_ = true
+
+[node name="DecompressionLever" type="Control" parent="DayShiftConsole/LowerDeckArea" unique_id=1739413104 node_paths=PackedStringArray("_overdriveSubsystem")]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("16_a0r7q")
+_overdriveSubsystem = NodePath("HotWeldNode")
+
+[node name="LeverTrackSprite" type="Sprite2D" parent="DayShiftConsole/LowerDeckArea/DecompressionLever" unique_id=1943234211]
+position = Vector2(799.8127, 1460.1528)
+scale = Vector2(0.36770797, 0.36770803)
+texture = ExtResource("22_krq04")
+hframes = 3
+
+[node name="NotchCycleButton" type="Button" parent="DayShiftConsole/LowerDeckArea/DecompressionLever" unique_id=1459873588]
+layout_mode = 0
+offset_left = 731.0
+offset_top = 1337.0
+offset_right = 874.0
+offset_bottom = 1673.0
+
+[node name="HotWeldNode" type="Node" parent="DayShiftConsole/LowerDeckArea/DecompressionLever" unique_id=463634293]
+script = ExtResource("23_krq04")
+
+[node name="HotWeldButton" type="Button" parent="DayShiftConsole/LowerDeckArea/DecompressionLever/HotWeldNode" unique_id=614035240]
+offset_left = 587.0
+offset_top = 1361.0
+offset_right = 711.0
+offset_bottom = 1462.0
+text = "Hot Weld
+"
+
+[node name="CoverShield" type="TextureRect" parent="DayShiftConsole/LowerDeckArea/DecompressionLever" unique_id=653313732]
+visible = false
+layout_mode = 0
+offset_left = 191.0
+offset_top = 1308.0
+offset_right = 502.0
+offset_bottom = 1657.0
+mouse_filter = 0
+
+[node name="CommitVentButton" type="Button" parent="DayShiftConsole/LowerDeckArea/DecompressionLever" unique_id=2011192644]
+layout_mode = 0
+offset_left = 201.0
+offset_top = 1354.0
+offset_right = 496.0
+offset_bottom = 1628.0
+text = "Main button"
+
+[node name="Subsystems" type="Control" parent="DayShiftConsole" unique_id=412944784]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+metadata/_edit_lock_ = true
+
+[node name="PressureSubsystem" type="Node" parent="DayShiftConsole/Subsystems" unique_id=1807119457]
+script = ExtResource("17_f28ve")
+
+[node name="ResourceSubsystem" type="Node" parent="DayShiftConsole/Subsystems" unique_id=307470678]
+script = ExtResource("18_1pra0")
