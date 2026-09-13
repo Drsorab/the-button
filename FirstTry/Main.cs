@@ -60,7 +60,7 @@ public partial class Main : Control
             GD.PrintErr($"[DANGER] Υποθερμία! Health: {health:F1}% (-{dmg:F2})");
         };
 
-        _shiftClock.OnShiftModeEvaluated += OnShiftModeChanged;
+        _shiftClock.OnShiftModeChanged += OnShiftModeChanged;
         _shiftClock.ForceEvaluate();
 
         _debugOverlay = GetNode<DebugOverlay>("DebugOverlay");

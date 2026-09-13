@@ -3,7 +3,6 @@ using System;
 
 public partial class ShiftClock : Control
 {
-    public event Action<ShiftMode> OnShiftModeEvaluated;
     public event Action<int> OnShiftScheduled;
 
     [Export] public int ShiftStartHour = 11;          // Ενεργή βάρδια σήμερα
@@ -11,7 +10,7 @@ public partial class ShiftClock : Control
     public const int ShiftDurationHours = 8;
     public const int MinRestHours = 8;
     private const float DegsPerHour = 15.0f;
-
+    public event Action<ShiftMode> OnShiftModeChanged;
     // UI Elements
     private TextureProgressBar _greenShiftRing;
     private TextureProgressBar _scheduledRing;
@@ -33,7 +32,8 @@ public partial class ShiftClock : Control
     private bool _hasScheduledShift = false;
     private ShiftMode _currentReportedMode = ShiftMode.SkeletonCrew;
     private int _lastEvaluatedDay = -1;
-
+    [Export] public int DefaultShiftStartHour = 8; // Η προεπιλεγμένη βάρδια αν περάσουν μέρες χωρίς προγραμματισμό
+    private DateTime _lastEvaluatedDate = DateTime.MinValue;
     public override void _Ready()
     {
         _greenShiftRing = GetNode<TextureProgressBar>("ClockCenter/GreenRing");
@@ -92,6 +92,51 @@ public partial class ShiftClock : Control
         EvaluateCurrentShift(now);
     }
 
+    public override void _Notification(int what)
+    {
+        if (what == NotificationApplicationResumed)
+        {
+            GD.Print("[CLOCK] Η εφαρμογή επανήλθε στο προσκήνιο. Έλεγχος ημερομηνίας...");
+            CheckDateProgression(DateTime.Now);
+        }
+    }
+    private void CheckDateProgression(DateTime now)
+    {
+        if (_lastEvaluatedDate == DateTime.MinValue)
+        {
+            _lastEvaluatedDate = now.Date;
+            return;
+        }
+
+        int daysElapsed = (int)(now.Date - _lastEvaluatedDate).TotalDays;
+
+        if (daysElapsed >= 1)
+        {
+            GD.Print($"[CLOCK] Πέρασαν {daysElapsed} ημέρα/ημέρες από την τελευταία συνεδρία.");
+
+            if (daysElapsed == 1)
+            {
+                // Ακριβώς 1 μέρα μετά: Εφαρμογή της κατοχυρωμένης βάρδιας για σήμερα
+                if (_hasScheduledShift)
+                {
+                    ShiftStartHour = ScheduledShiftStartHour;
+                    _hasScheduledShift = false;
+                    GD.Print($"[CLOCK] Νέα μέρα! Η βάρδια ορίστηκε στις: {ShiftStartHour:00}:00");
+                }
+            }
+            else
+            {
+                // Πέρασαν 2 ή περισσότερες μέρες: Η προγραμματισμένη βάρδια ανήκε στο παρελθόν
+                _hasScheduledShift = false;
+                ShiftStartHour = DefaultShiftStartHour; // Επαναφορά στην εργοστασιακή βάρδια
+                GD.Print($"[CLOCK] Μεγάλη απουσία ({daysElapsed} ημέρες). Επαναφορά σε Default: {ShiftStartHour:00}:00");
+            }
+
+            _scheduledRing.Visible = false;
+            UpdateRingVisuals();
+            _lastEvaluatedDate = now.Date;
+        }
+    }
     // Διαχείριση αλλαγής ημέρας
     private void ApplyMidnightShiftTransition(DateTime time)
     {
@@ -322,7 +367,7 @@ public partial class ShiftClock : Control
     public void ForceEvaluate()
     {
        EvaluateCurrentShift(DateTime.Now);
-        OnShiftModeEvaluated?.Invoke(_currentReportedMode);
+        OnShiftModeChanged?.Invoke(_currentReportedMode);
     }
 
     private void EvaluateCurrentShift(DateTime time)
@@ -339,10 +384,26 @@ public partial class ShiftClock : Control
         if (evaluatedMode != _currentReportedMode)
         {
             _currentReportedMode = evaluatedMode;
-            OnShiftModeEvaluated?.Invoke(_currentReportedMode);
+            OnShiftModeChanged?.Invoke(_currentReportedMode);
         }
     }
+    public double GetSecondsUntilNextActiveShift()
+    {
+        DateTime now = DateTime.Now;
+        int targetStartHour = _hasScheduledShift ? ScheduledShiftStartHour : ShiftStartHour;
 
+        // Προσδιορισμός της ώρας έναρξης της επόμενης ενεργής βάρδιας
+        DateTime nextShiftTime = new DateTime(now.Year, now.Month, now.Day, targetStartHour, 0, 0);
+
+        // Αν η ώρα έναρξης για σήμερα έχει ήδη περάσει, ανήκει στην επόμενη ημέρα
+        if (now >= nextShiftTime)
+        {
+            nextShiftTime = nextShiftTime.AddDays(1);
+        }
+
+        TimeSpan difference = nextShiftTime - now;
+        return Math.Max(0.0, difference.TotalSeconds);
+    }
     // Debug μέθοδος για άμεση προσομοίωση αλλαγής ημέρας
     public void SimulateMidnightTransition()
     {

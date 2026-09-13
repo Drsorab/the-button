@@ -25,6 +25,10 @@
 [ext_resource type="Script" uid="uid://b7h0blid27mkf" path="res://Permafrost/ResourceSubsystem.cs" id="18_1pra0"]
 [ext_resource type="Texture2D" uid="uid://dg8w3p0pj41la" path="res://Assets2/levers_3.png" id="22_krq04"]
 [ext_resource type="Script" uid="uid://b3ih6w75vtpqb" path="res://Permafrost/HotWeldOverdrive.cs" id="23_krq04"]
+[ext_resource type="Script" uid="uid://gfnufvxe3y15" path="res://Permafrost/PopulationSubsystem.cs" id="26_es8m0"]
+[ext_resource type="Script" uid="uid://dsdq23bej8nku" path="res://Permafrost/SkeletonCrewConsole.cs" id="27_nbgrd"]
+[ext_resource type="Script" uid="uid://det34uwoorbdv" path="res://Permafrost/ShiftDebriefModal.cs" id="28_ovmj0"]
+[ext_resource type="Script" uid="uid://ddu0b4ucqhnub" path="res://Permafrost/PopulationHUDView.cs" id="29_ovmj0"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_lx8uf"]
 atlas = ExtResource("3_ct3e5")
@@ -42,31 +46,52 @@ region = Rect2(1563.6978, 792.68353, 675.9551, 691.1451)
 atlas = ExtResource("3_ct3e5")
 region = Rect2(538.37274, 796.481, 672.15753, 675.955)
 
-[node name="DayShiftManager" type="Node2D" unique_id=1655091377]
-
-[node name="DayShiftConsole" type="Control" parent="." unique_id=449103022 node_paths=PackedStringArray("_nixieTimer", "_shiftClock", "_pressureSubsystem", "_resourceSubsystem", "_fuseRack", "_decompressionLever", "_topBarView", "_hotWeldOverdrive", "_pressureGaugeView")]
-custom_minimum_size = Vector2(720, 1208)
-custom_maximum_size = Vector2(1080, 1920)
+[node name="DayShiftManager" type="Control" unique_id=1787509547]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 4.0
-offset_top = -4.0
-offset_right = 1084.0
-offset_bottom = 1916.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Subsystems" type="Control" parent="." unique_id=412944784]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+metadata/_edit_lock_ = true
+
+[node name="PressureSubsystem" type="Node" parent="Subsystems" unique_id=1807119457]
+script = ExtResource("17_f28ve")
+
+[node name="ResourceSubsystem" type="Node" parent="Subsystems" unique_id=307470678]
+script = ExtResource("18_1pra0")
+
+[node name="PopulationSubsystem" type="Node" parent="Subsystems" unique_id=2001488607]
+script = ExtResource("26_es8m0")
+
+[node name="DayShiftConsole" type="Control" parent="." unique_id=449103022 node_paths=PackedStringArray("_nixieTimer", "_shiftClock", "_pressureSubsystem", "_resourceSubsystem", "_fuseRack", "_decompressionLever", "_topBarView", "_hotWeldOverdrive", "_pressureGaugeView", "_populationSubsystem", "_debriefModal", "_skeletonConsole", "_dayShiftConsole")]
+custom_minimum_size = Vector2(720, 1208)
+custom_maximum_size = Vector2(1080, 1920)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_6jcbh")
 _nixieTimer = NodePath("CenterChamberArea/NixieTimer")
 _shiftClock = NodePath("UpperConsoleArea/ShiftClock")
-_pressureSubsystem = NodePath("Subsystems/PressureSubsystem")
-_resourceSubsystem = NodePath("Subsystems/ResourceSubsystem")
+_pressureSubsystem = NodePath("../Subsystems/PressureSubsystem")
+_resourceSubsystem = NodePath("../Subsystems/ResourceSubsystem")
 _fuseRack = NodePath("UpperConsoleArea/FuseRack")
 _decompressionLever = NodePath("LowerDeckArea/DecompressionLever")
 _topBarView = NodePath("TopBarContainer")
 _hotWeldOverdrive = NodePath("LowerDeckArea/DecompressionLever/HotWeldNode")
 _pressureGaugeView = NodePath("CenterChamberArea/PressureGauge")
+_populationSubsystem = NodePath("../Subsystems/PopulationSubsystem")
+_debriefModal = NodePath("../CanvasLayer/ShiftDebriefModal")
+_skeletonConsole = NodePath("../SkeletonCrewConsole")
+_dayShiftConsole = NodePath(".")
 
 [node name="Background" type="TextureRect" parent="DayShiftConsole" unique_id=972553352]
 layout_mode = 1
@@ -112,7 +137,7 @@ stretch_mode = 5
 [node name="Value" type="Label" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/CoalDisplay" unique_id=1064687042]
 layout_mode = 2
 size_flags_horizontal = 11
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 40
 vertical_alignment = 1
 
 [node name="BatteryDisplay" type="HBoxContainer" parent="DayShiftConsole/TopBarContainer/ResourcesHBox" unique_id=244880595]
@@ -130,7 +155,7 @@ stretch_mode = 5
 [node name="Value" type="Label" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/BatteryDisplay" unique_id=586792953]
 layout_mode = 2
 size_flags_horizontal = 11
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 40
 vertical_alignment = 1
 
 [node name="ScrapDisplay" type="HBoxContainer" parent="DayShiftConsole/TopBarContainer/ResourcesHBox" unique_id=1097769492]
@@ -148,7 +173,7 @@ stretch_mode = 5
 [node name="Value" type="Label" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/ScrapDisplay" unique_id=1249401341]
 layout_mode = 2
 size_flags_horizontal = 11
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 40
 vertical_alignment = 1
 
 [node name="TempDisplay" type="HBoxContainer" parent="DayShiftConsole/TopBarContainer/ResourcesHBox" unique_id=1628539030]
@@ -166,7 +191,7 @@ stretch_mode = 5
 [node name="Value" type="Label" parent="DayShiftConsole/TopBarContainer/ResourcesHBox/TempDisplay" unique_id=1250405464]
 layout_mode = 2
 size_flags_horizontal = 11
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 40
 vertical_alignment = 1
 
 [node name="UpperConsoleArea" type="Control" parent="DayShiftConsole" unique_id=2001764484]
@@ -554,14 +579,161 @@ offset_right = 496.0
 offset_bottom = 1628.0
 text = "Main button"
 
-[node name="Subsystems" type="Control" parent="DayShiftConsole" unique_id=412944784]
-anchors_preset = 0
+[node name="SkeletonCrewConsole" type="Control" parent="." unique_id=464163695]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("27_nbgrd")
+
+[node name="ColorRect" type="ColorRect" parent="SkeletonCrewConsole" unique_id=84972452]
+layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
-metadata/_edit_lock_ = true
 
-[node name="PressureSubsystem" type="Node" parent="DayShiftConsole/Subsystems" unique_id=1807119457]
-script = ExtResource("17_f28ve")
+[node name="Label" type="Label" parent="SkeletonCrewConsole/ColorRect" unique_id=582541055]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
 
-[node name="ResourceSubsystem" type="Node" parent="DayShiftConsole/Subsystems" unique_id=307470678]
-script = ExtResource("18_1pra0")
+[node name="Label2" type="Label" parent="SkeletonCrewConsole/ColorRect" unique_id=162527533]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=899351253]
+
+[node name="ShiftDebriefModal" type="PanelContainer" parent="CanvasLayer" unique_id=1527763268]
+offset_right = 40.0
+offset_bottom = 70.0
+script = ExtResource("28_ovmj0")
+
+[node name="DebriefBox" type="VBoxContainer" parent="CanvasLayer/ShiftDebriefModal" unique_id=1179152216]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="CanvasLayer/ShiftDebriefModal/DebriefBox" unique_id=1019042951]
+layout_mode = 2
+
+[node name="MetricsLabel" type="Label" parent="CanvasLayer/ShiftDebriefModal/DebriefBox" unique_id=1375461307]
+layout_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/ShiftDebriefModal/DebriefBox" unique_id=1277618340]
+layout_mode = 2
+
+[node name="HandoverButton" type="Button" parent="CanvasLayer/ShiftDebriefModal/DebriefBox" unique_id=1307399295]
+layout_mode = 2
+
+[node name="PopulationHUD" type="Control" parent="CanvasLayer" unique_id=1571632235 node_paths=PackedStringArray("_populationSubsystem")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("29_ovmj0")
+_populationSubsystem = NodePath("../../Subsystems/PopulationSubsystem")
+
+[node name="HUDTriggerButton" type="Button" parent="CanvasLayer/PopulationHUD" unique_id=1543229556]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -338.0
+offset_top = -115.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="TriggerLabel" type="Label" parent="CanvasLayer/PopulationHUD/HUDTriggerButton" unique_id=1068751425]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -27.5
+offset_bottom = 27.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 40
+text = "CREW : 48 / 118"
+horizontal_alignment = 1
+
+[node name="LedgerModal" type="PanelContainer" parent="CanvasLayer/PopulationHUD" unique_id=120098922]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 185.0
+offset_top = 411.0
+offset_right = 536.0
+offset_bottom = 844.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/PopulationHUD/LedgerModal" unique_id=1825982500]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer" unique_id=1138465348]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=1334146178]
+layout_mode = 2
+theme_override_font_sizes/font_size = 35
+text = "Ledger"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=387021488]
+layout_mode = 2
+
+[node name="EfficiencyLabel" type="Label" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=1732032975]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="GeneralPopLabel" type="Label" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=1721448867]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="WorkforceLabel" type="Label" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=350259150]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="SickLabel" type="Label" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=1486704147]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="GravelySickLabel" type="Label" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=1561831896]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="CasualtiesLabel" type="Label" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=1281435499]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="HSeparator2" type="HSeparator" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=439854288]
+layout_mode = 2
+
+[node name="EmergencyOrders" type="VBoxContainer" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=1671443682]
+layout_mode = 2
+
+[node name="SickLaborCheckbox" type="CheckButton" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer/EmergencyOrders" unique_id=118479826]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Sick Work"
+
+[node name="GravelyLaborCheckbox" type="CheckButton" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer/EmergencyOrders" unique_id=1406599864]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Gravely Sick Work"
+
+[node name="CloseButton" type="Button" parent="CanvasLayer/PopulationHUD/LedgerModal/MarginContainer/VBoxContainer" unique_id=2045868181]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Close Ledger"

@@ -1,14 +1,12 @@
 using Godot;
 using System;
 
-public partial class DayShiftManager : Node
+public partial class DayShiftManager : Control
 {
     // Χρονικά διαστήματα κύκλων (σε δευτερόλεπτα)
     private const double BaseCycleSeconds = 108.0 * 60.0;
     private const double SurgeCycleSeconds = 72.0 * 60.0;
     private const double ScrapCycleSeconds = 45.0 * 60.0;
-    private const double HotWeldCycleSeconds = 30.0 * 60.0;
-    private const double EmergencyPenaltyCycleSeconds = 30.0 * 60.0;
 
     // Αναφορές στους κόμβους του Scene Tree
     [Export] private NixieTimer _nixieTimer;
@@ -20,13 +18,18 @@ public partial class DayShiftManager : Node
     [Export] private TopBarView _topBarView;
     [Export] private HotWeldOverdrive _hotWeldOverdrive;
     [Export] private PressureGaugeView _pressureGaugeView;
-    private bool _isShiftActive = false;
+    [Export] private PopulationSubsystem _populationSubsystem;
 
+    [Export] private ShiftDebriefModal _debriefModal;
+    [Export] private SkeletonCrewConsole _skeletonConsole;
+    [Export] private Control _dayShiftConsole; // Ο κύριος πίνακας ημέρας
+    private int _cyclesCompletedThisShift = 0;
+    private double _shiftElapsedSeconds = 0.0;
+
+    private bool _isShiftActive = false;
+    private int _shiftCasualtiesStart = 0;
     public override void _Ready()
     {
-        // 1. Σύνδεση με το ShiftClock
-        _shiftClock.OnShiftModeEvaluated += HandleShiftModeChanged;
-
         // 2. Σύνδεση με το NixieTimer
         _nixieTimer.OnCoverThresholdChanged += HandleCoverThreshold;
         _nixieTimer.OnTimerZeroReached += HandleTimerZero;
@@ -34,6 +37,35 @@ public partial class DayShiftManager : Node
 
         // 3. Σύνδεση με τον μοχλό εκτόνωσης
         _decompressionLever.OnVentTriggered += HandleDecompressionTriggered;
+        // 1. Καταγραφή αρχικών απωλειών κατά την εκκίνηση της βάρδιας
+        if (_populationSubsystem != null)
+        {
+            _shiftCasualtiesStart = _populationSubsystem.CasualtiesCount;
+            _populationSubsystem.OnCasualtiesOccurred += HandleCasualtiesAlert;
+        }
+
+        // 2. Σύνδεση υπερθέρμανσης Overdrive με απώλειες εργατών
+        if (_hotWeldOverdrive != null)
+        {
+            _hotWeldOverdrive.OnOverdriveBlowout += () =>
+            {
+                // Το σκάσιμο σωληνώσεων ατμού σκοτώνει 2-4 εργάτες
+                int killed = GD.RandRange(2, 4);
+                GD.Print($"[DISASTER] Έκρηξη ατμού στο Hot-Weld! Απώλειες: {killed} εργάτες.");
+                _populationSubsystem?.RecordCasualties(killed);
+            };
+        }
+
+        // 1. Καταμέτρηση κύκλων εκτόνωσης
+        _decompressionLever.OnVentTriggered += (mode) =>
+        {
+            _cyclesCompletedThisShift++;
+        };
+        if (_debriefModal != null)
+        {
+            _debriefModal.OnHandoverConfirmed += TransitionToSkeletonCrew;
+        }
+
         _pressureSubsystem.OnPressureChanged += (currentPressure) =>
         {
             _pressureGaugeView?.UpdatePressure(currentPressure);
@@ -46,6 +78,7 @@ public partial class DayShiftManager : Node
         };
 
         // Αρχικός έλεγχος κατάστασης βάρδιας
+        _shiftClock.OnShiftModeChanged += HandleShiftModeChanged;
         _shiftClock.ForceEvaluate();
     }
     public override void _Process(double delta)
@@ -57,27 +90,70 @@ public partial class DayShiftManager : Node
 
         // 2. Εφαρμογή της επιτάχυνσης χρόνου στο Nixie Timer
         _nixieTimer.TimeScale = _hotWeldOverdrive.TimeDilationMultiplier;
+
+        // 3. Σύνδεση θερμοκρασίας πόλης με την επιβίωση των πολιτών
+        // Χρησιμοποιεί την τρέχουσα θερμοκρασία από το ResourceSubsystem
+        _populationSubsystem?.ProcessFreezingRisk(delta, _resourceSubsystem.CityTemperatureC);
+        _populationSubsystem?.ProcessForcedLaborRisks(delta);
+        _populationSubsystem?.ProcessOverdriveHazards(delta, _hotWeldOverdrive.IsActive, _hotWeldOverdrive.StressPercent);
     }
     // Διαχείριση αλλαγής βάρδιας (Active Shift vs. Skeleton Crew)
     private void HandleShiftModeChanged(ShiftMode mode)
     {
-        if (mode == ShiftMode.ActiveShift)
+        if (mode == ShiftMode.SkeletonCrew && _isShiftActive)
         {
-            GD.Print("[DAY SHIFT] Έναρξη ενεργής βάρδιας!");
+            // Η 8ωρη βάρδια μόλις ολοκληρώθηκε -> Προβολή Αναφοράς (Debrief)
+            _isShiftActive = false;
+            TriggerEndOfShiftManifest();
+        }
+        else if (mode == ShiftMode.ActiveShift)
+        {
             _isShiftActive = true;
+            _cyclesCompletedThisShift = 0;
+            _shiftElapsedSeconds = 0.0;
+            _skeletonConsole?.DeactivateStandby();
+            _dayShiftConsole.Visible = true;
+
             _resourceSubsystem.SetActive(true);
-            _nixieTimer.ResumeActiveShift(BaseCycleSeconds);
+            _nixieTimer.StartCountdown(BaseCycleSeconds);
             _pressureSubsystem.StartSimulation(BaseCycleSeconds);
         }
-        else
+    }
+
+    private void TriggerEndOfShiftManifest()
+    {
+        int currentTotalCasualties = _populationSubsystem != null ? _populationSubsystem.CasualtiesCount : 0;
+        int casualtiesThisShift = currentTotalCasualties - _shiftCasualtiesStart;
+
+        var debriefData = new ShiftDebriefData
         {
-            GD.Print("[DAY SHIFT] Μετάβαση σε Skeleton Crew.");
-            _isShiftActive = false;
-            _resourceSubsystem.SetActive(false);
-            _pressureSubsystem.StopSimulation();
-            _decompressionLever.SetLockedState(true);
-            _nixieTimer.SetSkeletonCrewMode();
-        }
+            ShiftDurationSeconds = _shiftElapsedSeconds,
+            CyclesCompleted = _cyclesCompletedThisShift,
+            FinalIntegrity = _pressureSubsystem != null ? _pressureSubsystem.CasingIntegrity : 100.0f,
+            RemainingCoalKg = _resourceSubsystem != null ? _resourceSubsystem.CoalStockpileKg : 0.0f,
+            RemainingBattery = _resourceSubsystem != null ? _resourceSubsystem.BatteryChargePercent : 0.0f,
+            ScrapSalvaged = _resourceSubsystem != null ? _resourceSubsystem.MetalScrapCount : 0,
+
+            ActiveWorkforce = _populationSubsystem != null ? _populationSubsystem.EffectiveWorkforce : 0,
+            TotalWorkforce = _populationSubsystem != null ? _populationSubsystem.TotalWorkforce : 0,
+            SickCount = _populationSubsystem != null ? _populationSubsystem.SickWorkers : 0,
+            GravelySickCount = _populationSubsystem != null ? _populationSubsystem.GravelySickWorkers : 0,
+            GeneralPopulation = _populationSubsystem != null ? _populationSubsystem.GeneralPopulation : 0,
+            CasualtiesThisShift = casualtiesThisShift,
+            FinalEfficiency = _populationSubsystem != null ? _populationSubsystem.EfficiencyFactor : 1.0f
+        };
+
+        _debriefModal?.DisplayManifest(debriefData);
+    }
+
+    private void TransitionToSkeletonCrew()
+    {
+        // Απόκρυψη του πίνακα ημέρας
+        _dayShiftConsole.Visible = false;
+
+        // Ενεργοποίηση της οθόνης Skeleton Crew με υπολειπόμενο χρόνο μέχρι την επόμενη βάρδια
+        double secondsUntilTomorrow = _shiftClock.GetSecondsUntilNextActiveShift();
+        _skeletonConsole?.ActivateStandby(secondsUntilTomorrow);
     }
 
     // Άνοιγμα / Κλείσιμο καλύμματος μοχλού όταν φτάσει στο όριο του Nixie
@@ -144,7 +220,7 @@ public partial class DayShiftManager : Node
             case VentMode.HotWeld:
 
                     GD.Print("[WARNING] Δεν μπορεις να κανεις discharge οσο εισαι σε HotWeld mode.");
-
+                
                 break;
         }
 
@@ -162,5 +238,13 @@ public partial class DayShiftManager : Node
         _pressureSubsystem.StopSimulation();
         _resourceSubsystem.SetActive(false);
         _decompressionLever.SetLockedState(true);
+
+        _populationSubsystem?.RecordCasualties(25);
+    }
+
+    private void HandleCasualtiesAlert(int count)
+    {
+        GD.Print($"[CASUALTY REPORT] Επιβεβαιώθηκαν {count} νέες απώλειες από το ψύχος/ατύχημα.");
+        // Μελλοντικά: screen shake, κόκκινο flash ή σειρήνα
     }
 }
