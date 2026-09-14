@@ -86,7 +86,9 @@ public partial class DayShiftManager : Control
         if (!_isShiftActive) return;
 
         // 1. Επεξεργασία λειτουργίας Overdrive
-        _hotWeldOverdrive.ProcessOverdrive(delta, _resourceSubsystem, _pressureSubsystem);
+        // Κλήση με εφαρμογή του συντελεστή απόδοσης των εργατών
+        float efficiency = _populationSubsystem != null ? _populationSubsystem.EfficiencyFactor : 1.0f;
+        _hotWeldOverdrive.ProcessOverdrive(delta, _resourceSubsystem, _pressureSubsystem, efficiency);
 
         // 2. Εφαρμογή της επιτάχυνσης χρόνου στο Nixie Timer
         _nixieTimer.TimeScale = _hotWeldOverdrive.TimeDilationMultiplier;
@@ -96,6 +98,8 @@ public partial class DayShiftManager : Control
         _populationSubsystem?.ProcessFreezingRisk(delta, _resourceSubsystem.CityTemperatureC);
         _populationSubsystem?.ProcessForcedLaborRisks(delta);
         _populationSubsystem?.ProcessOverdriveHazards(delta, _hotWeldOverdrive.IsActive, _hotWeldOverdrive.StressPercent);
+
+
     }
     // Διαχείριση αλλαγής βάρδιας (Active Shift vs. Skeleton Crew)
     private void HandleShiftModeChanged(ShiftMode mode)

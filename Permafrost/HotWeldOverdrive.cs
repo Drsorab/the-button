@@ -12,11 +12,11 @@ public partial class HotWeldOverdrive : Node
     [Export] public bool IsActive { get; private set; } = false;
 
     // Παράμετροι ρυθμών (ανά δευτερόλεπτο)
-    [Export] public float StressBuildRatePerSec = 5.0f;   // Φτάνει στο 100% σε 20 δευτερόλεπτα
-    [Export] public float StressDecayRatePerSec = 2.5f;   // Κρυώνει σε 40 δευτερόλεπτα
-    [Export] public float RepairRatePerSec = 3.0f;        // Επισκευή κάσας %
-    [Export] public float ScrapConsumptionInterval = 2.5f;// Κατανάλωση scrap κάθε X (2.5) δευτερόλεπτα
-    [Export] public int ScrapConsumption = 1; // Πόσα scrap καταναλώνονται ανά κύκλο
+    [Export] public float StressBuildRatePerSec = 5.0f;    // Φτάνει στο 100% σε 20 δευτερόλεπτα
+    [Export] public float StressDecayRatePerSec = 2.5f;    // Κρυώνει σε 40 δευτερόλεπτα
+    [Export] public float RepairRatePerSec = 3.0f;         // Βασική ταχύτητα επισκευής κάσας % ανά δευτερόλεπτο
+    [Export] public float ScrapConsumptionInterval = 2.5f; // Κατανάλωση scrap κάθε X δευτερόλεπτα
+    [Export] public int ScrapConsumption = 1;              // Πόσα scrap καταναλώνονται ανά κύκλο
     private float _scrapTimer = 0.0f;
 
     // Επιστρέφει τον πολλαπλασιαστή ταχύτητας για το NixieTimer
@@ -47,40 +47,43 @@ public partial class HotWeldOverdrive : Node
         OnOverdriveToggled?.Invoke(false);
     }
 
-    public void ProcessOverdrive(double delta, ResourceSubsystem resources, PressureSubsystem pressure)
+    public void ProcessOverdrive(double delta, ResourceSubsystem resources, PressureSubsystem pressure, float efficiencyFactor = 1.0f)
     {
         if (IsActive)
         {
-            // 1. Κατανάλωση Scrap ανά τακτά διαστήματα
+            // 1. Κατανάλωση Scrap ανά τακτά χρονικά διαστήματα
             _scrapTimer += (float)delta;
             if (_scrapTimer >= ScrapConsumptionInterval)
             {
                 _scrapTimer = 0.0f;
-                if (!resources.TryConsumeScrap(ScrapConsumption))  // Number of Scrap consumption 
+                if (!resources.TryConsumeScrap(ScrapConsumption))
                 {
-                    // Αν τελειώσει το scrap, το σύστημα σβήνει αυτόματα
+                    // Αν εξαντληθεί το scrap, το overdrive απενεργοποιείται αυτόματα
                     GD.Print("[OVERDRIVE] Εξάντληση Scrap! Αυτόματη απενεργοποίηση.");
                     ForceShutdown();
                     return;
                 }
             }
 
-            // 2. Επισκευή κάσας
-            pressure.RestoreIntegrity(RepairRatePerSec * (float)delta);
+            // 2. Επισκευή κάσας κλιμακούμενη με τον συντελεστή απόδοσης των εργατών (EfficiencyFactor)
+            // Εάν το πλήρωμα είναι μειωμένο ή άρρωστο, η επισκευή επιβραδύνεται
+            float effectiveRepairRate = RepairRatePerSec * efficiencyFactor;
+            pressure.RestoreIntegrity(effectiveRepairRate * (float)delta);
 
-            // 3. Αύξηση Stress
+            // 3. Αύξηση θερμικού stress
             StressPercent = Mathf.Clamp(StressPercent + (StressBuildRatePerSec * (float)delta), 0.0f, 100.0f);
             OnStressChanged?.Invoke(StressPercent);
 
-            // 4. Έλεγχος Υπερθέρμανσης (Blowout στο 100%)
+            // 4. Έλεγχος υπερθέρμανσης (Blowout στο 100%)
             if (StressPercent >= 100.0f)
             {
                 TriggerBlowout(pressure);
+                return;
             }
         }
         else
         {
-            // Σταδιακή ψύξη και πτώση του stress όταν είναι κλειστό
+            // Σταδιακή ψύξη και αποκλιμάκωση του stress όταν το σύστημα είναι ανενεργό
             if (StressPercent > 0.0f)
             {
                 StressPercent = Mathf.Clamp(StressPercent - (StressDecayRatePerSec * (float)delta), 0.0f, 100.0f);
@@ -90,12 +93,12 @@ public partial class HotWeldOverdrive : Node
         }
     }
 
-    // Καταστροφική εκτόνωση λόγω υπερβολικής παραμονής στο 100%
+    // Καταστροφική εκτόνωση λόγω υπερβολικής παραμονής στο μέγιστο όριο (100%)
     private void TriggerBlowout(PressureSubsystem pressure)
     {
         GD.Print("[CRITICAL] Υπερθέρμανση Hot-Weld! Έκρηξη σωληνώσεων!");
         ForceShutdown();
-        pressure.ApplyWear(25.0f); // Σοβαρή ζημιά στην κάσα
+        pressure.ApplyWear(25.0f); // Σοβαρή ζημιά στο κέλυφος
         OnOverdriveBlowout?.Invoke();
     }
 }
