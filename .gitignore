@@ -36,3 +36,4 @@ build/
 # Android export packages
 *.apk
 *.aab
+*.import
