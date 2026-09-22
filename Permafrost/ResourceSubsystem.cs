@@ -4,6 +4,7 @@ using System;
 public partial class ResourceSubsystem : Node
 {
     public event Action<float, float, float, int> OnResourcesUpdated;
+    public event Action<float> OnCoalStockpileChanged;
 
     [Export] public float CoalStockpileKg = 380.0f;
     [Export] public float BatteryChargePercent = 50.0f;
@@ -26,10 +27,52 @@ public partial class ResourceSubsystem : Node
         if (!_isActive) return;
 
         // Σταδιακή κατανάλωση κάρβουνου και φόρτιση μπαταρίας
-        CoalStockpileKg = Mathf.Max(0.0f, CoalStockpileKg - (CoalBurnRatePerSec * (float)delta));
+        if (CoalStockpileKg > 0.0f)
+        {
+            CoalStockpileKg = Mathf.Max(0.0f, CoalStockpileKg - (CoalBurnRatePerSec * (float)delta));
+            OnCoalStockpileChanged?.Invoke(CoalStockpileKg);
+        }
+
         BatteryChargePercent = Mathf.Clamp(BatteryChargePercent + (ElectricityChargeRatePerSec * (float)delta), 0.0f, 100.0f);
         CityTemperatureC -= HeatDecayRatePerSec * (float)delta;
 
+        EmitUpdate();
+    }
+
+    // Κατανάλωση κάρβουνου με έλεγχο επάρκειας (χρησιμοποιείται από το SkeletonCrewSubsystem)
+    public bool TryConsumeCoal(float amount)
+    {
+        if (amount <= 0.0f) return true;
+
+        if (CoalStockpileKg >= amount)
+        {
+            CoalStockpileKg -= amount;
+            OnCoalStockpileChanged?.Invoke(CoalStockpileKg);
+            EmitUpdate();
+            return true;
+        }
+
+        // Εάν δεν επαρκεί όλη η ποσότητα, μηδενίζουμε το απόθεμα
+        CoalStockpileKg = 0.0f;
+        OnCoalStockpileChanged?.Invoke(CoalStockpileKg);
+        EmitUpdate();
+        return false;
+    }
+
+    // Προσθήκη κάρβουνου στο απόθεμα (χρησιμοποιείται από το Minigame εξόρυξης)
+    public void AddCoal(float amount)
+    {
+        if (amount <= 0.0f) return;
+
+        CoalStockpileKg += amount;
+        OnCoalStockpileChanged?.Invoke(CoalStockpileKg);
+        EmitUpdate();
+    }
+
+    // Άμεση μείωση θερμοκρασίας (χρησιμοποιείται ως ποινή αστοχίας στο Minigame)
+    public void DrainCoreHeat(float tempDrop)
+    {
+        CityTemperatureC -= Mathf.Abs(tempDrop);
         EmitUpdate();
     }
 

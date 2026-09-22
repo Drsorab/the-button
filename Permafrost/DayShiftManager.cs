@@ -18,8 +18,8 @@ public partial class DayShiftManager : Control
     [Export] private TopBarView _topBarView;
     [Export] private HotWeldOverdrive _hotWeldOverdrive;
     [Export] private PressureGaugeView _pressureGaugeView;
-    [Export] private PopulationSubsystem _populationSubsystem;
-
+    [Export] private PopulationSubsystem_old _populationSubsystem;
+    [Export] private DiagnosticTerminal _diagnosticTerminal;
     [Export] private ShiftDebriefModal _debriefModal;
     [Export] private SkeletonCrewConsole _skeletonConsole;
     [Export] private Control _dayShiftConsole; // Ο κύριος πίνακας ημέρας
@@ -197,31 +197,31 @@ public partial class DayShiftManager : Control
     }
 
     // Εκτέλεση εκτόνωσης ανάλογα με τη θέση του μοχλού
-    private void HandleDecompressionTriggered(VentMode mode)
+    private void HandleDecompressionTriggered(VentMode_old mode)
     {
         double nextCycleDuration = BaseCycleSeconds;
 
         switch (mode)
         {
-            case VentMode.SafeRelease:
+            case VentMode_old.SafeRelease:
                 _pressureSubsystem.DischargePressure(10.0f, 2.0f);
                 _resourceSubsystem.SurgeElectricHeat(20.0f, 5.0f);
                 nextCycleDuration = BaseCycleSeconds;
                 break;
 
-            case VentMode.HeatSurge:
+            case VentMode_old.HeatSurge:
                 _pressureSubsystem.DischargePressure(10.0f, 6.0f);
                 _resourceSubsystem.SurgeElectricHeat(100.0f, 35.0f);
                 nextCycleDuration = SurgeCycleSeconds;
                 break;
 
-            case VentMode.ScrapScour:
+            case VentMode_old.ScrapScour:
                 _pressureSubsystem.DischargePressure(10.0f, 12.0f);
                 _resourceSubsystem.AddScrap(15);
                 nextCycleDuration = ScrapCycleSeconds;
                 break;
 
-            case VentMode.HotWeld:
+            case VentMode_old.HotWeld:
 
                     GD.Print("[WARNING] Δεν μπορεις να κανεις discharge οσο εισαι σε HotWeld mode.");
                 

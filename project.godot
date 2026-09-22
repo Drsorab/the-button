@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="theButton"
-run/main_scene="uid://c6gsi6vhg1ioh"
+run/main_scene="uid://dky2x58nq17ns"
 config/features=PackedStringArray("4.7", "C#", "Mobile")
 config/icon="res://FirstTry/icon.svg"
 
@@ -22,6 +22,7 @@ window/size/viewport_height=1920
 window/size/window_width_override=405
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
+window/stretch/aspect="keep_width"
 window/handheld/orientation=5
 
 [dotnet]

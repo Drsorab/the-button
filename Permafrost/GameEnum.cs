@@ -8,7 +8,7 @@ public enum ShiftMode
 }
 
 // Θέσεις / επιλογές του Decompression Lever κατά την εκτόνωση
-public enum VentMode
+public enum VentMode_old
 {
     SafeRelease,   // Επαναφορά στα 108λ, χαμηλή θερμότητα
     HeatSurge,     // 72λ, μετατροπή μπαταρίας σε μέγιστη θερμότητα

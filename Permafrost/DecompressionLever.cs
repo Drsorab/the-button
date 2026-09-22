@@ -5,10 +5,10 @@ public partial class DecompressionLever : Control
 {
     [Export] private HotWeldOverdrive _overdriveSubsystem;
 
-    public event Action<VentMode> OnVentTriggered;
-    public event Action<VentMode> OnNotchChanged;
+    public event Action<VentMode_old> OnVentTriggered;
+    public event Action<VentMode_old> OnNotchChanged;
 
-    [Export] public VentMode CurrentMode { get; private set; } = VentMode.SafeRelease;
+    [Export] public VentMode_old CurrentMode { get; private set; } = VentMode_old.SafeRelease;
 
     private Sprite2D _leverTrackSprite;
     private Button _notchCycleButton;
@@ -120,7 +120,7 @@ public partial class DecompressionLever : Control
 
         if (_isHotWeldActive)
         {
-            CurrentMode = VentMode.HotWeld;
+            CurrentMode = VentMode_old.HotWeld;
             _overdriveSubsystem?.ToggleOverdrive(true);
         }
         else
@@ -138,10 +138,10 @@ public partial class DecompressionLever : Control
     {
         CurrentMode = _currentNotchIndex switch
         {
-            0 => VentMode.SafeRelease,
-            1 => VentMode.HeatSurge,
-            2 => VentMode.ScrapScour,
-            _ => VentMode.SafeRelease
+            0 => VentMode_old.SafeRelease,
+            1 => VentMode_old.HeatSurge,
+            2 => VentMode_old.ScrapScour,
+            _ => VentMode_old.SafeRelease
         };
     }
 
@@ -170,10 +170,10 @@ public partial class DecompressionLever : Control
         {
             _notchCycleButton.Text = CurrentMode switch
             {
-                VentMode.SafeRelease => "NOTCH 1: SAFE (108m)",
-                VentMode.HeatSurge => "NOTCH 2: HEAT (72m)",
-                VentMode.ScrapScour => "NOTCH 3: SCRAP (45m)",
-                VentMode.HotWeld => "BYPASS: HOT-WELD",
+                VentMode_old.SafeRelease => "NOTCH 1: SAFE (108m)",
+                VentMode_old.HeatSurge => "NOTCH 2: HEAT (72m)",
+                VentMode_old.ScrapScour => "NOTCH 3: SCRAP (45m)",
+                VentMode_old.HotWeld => "BYPASS: HOT-WELD",
                 _ => "SELECT NOTCH"
             };
         }

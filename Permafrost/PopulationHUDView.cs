@@ -3,7 +3,7 @@ using System;
 
 public partial class PopulationHUDView : Control
 {
-    [Export] private PopulationSubsystem _populationSubsystem;
+    [Export] private PopulationSubsystem_old _populationSubsystem;
 
     // HUD Button Elements
     private Button _triggerButton;

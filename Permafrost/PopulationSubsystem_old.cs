@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-public partial class PopulationSubsystem : Node
+public partial class PopulationSubsystem_old : Node
 {
     // (ActiveWorkforce, GeneralPop, Sick, GravelySick, Dead, Efficiency)
     public event Action<int, int, int, int, int, float> OnPopulationLedgerUpdated;

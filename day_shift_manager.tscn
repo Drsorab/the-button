@@ -1,34 +1,38 @@
 [gd_scene format=3 uid="uid://c6gsi6vhg1ioh"]
 
 [ext_resource type="Script" uid="uid://bkchd50ahv7ad" path="res://Permafrost/DayShiftManager.cs" id="1_6jcbh"]
-[ext_resource type="Texture2D" uid="uid://b0uiaaupiescd" path="res://Assets2/panel.jpg" id="2_ajdm4"]
+[ext_resource type="Script" uid="uid://bsqjf5dk5rw1d" path="res://Permafrost/ShiftOrchestrator.cs" id="1_h1e8v"]
+[ext_resource type="Texture2D" uid="uid://dalon0t4b14ey" path="res://Assets2/panel.jpg" id="2_ajdm4"]
 [ext_resource type="Script" uid="uid://dwv4ob8pvxybf" path="res://FirstTry/ShiftClock.cs" id="2_ttvea"]
-[ext_resource type="Texture2D" uid="uid://dwjgu417x1yod" path="res://Assets2/resources.jpg" id="3_ct3e5"]
-[ext_resource type="Texture2D" uid="uid://cep5t7cgn2ajn" path="res://Assets/clock.png" id="3_kiv7v"]
+[ext_resource type="Texture2D" uid="uid://d2hidl0hnutlo" path="res://Assets2/resources.jpg" id="3_ct3e5"]
+[ext_resource type="Texture2D" uid="uid://bstchmdlyimm8" path="res://Assets/clock.png" id="3_kiv7v"]
 [ext_resource type="Script" uid="uid://eceaoh4ert2p" path="res://Permafrost/TopBarView.cs" id="3_squru"]
-[ext_resource type="Texture2D" uid="uid://dykp3lqgooeb8" path="res://Assets/red_ring.png" id="4_42pny"]
-[ext_resource type="Texture2D" uid="uid://vg8r3g0aoioc" path="res://Assets/green_ring.png" id="5_ct3e5"]
-[ext_resource type="Texture2D" uid="uid://dyr84hifsgh0r" path="res://Assets/orange_ring.png" id="6_squru"]
-[ext_resource type="Texture2D" uid="uid://bu80pysaol74h" path="res://Assets/hand.png" id="7_ajdm4"]
+[ext_resource type="Texture2D" uid="uid://b6rumwh2femk3" path="res://Assets/red_ring.png" id="4_42pny"]
+[ext_resource type="Script" uid="uid://p7eviwghxp2v" path="res://Permafrost/SkeletonCrewSubsystem.cs" id="4_pb8t0"]
+[ext_resource type="Texture2D" uid="uid://hyqa87j6a2b2" path="res://Assets/green_ring.png" id="5_ct3e5"]
+[ext_resource type="Script" uid="uid://cpnxqxwjvsht2" path="res://Permafrost/AcousticDrillMinigame.cs" id="5_h1e8v"]
+[ext_resource type="Texture2D" uid="uid://coyie3ym14g1y" path="res://Assets/orange_ring.png" id="6_squru"]
+[ext_resource type="Texture2D" uid="uid://bwy123t4jef5y" path="res://Assets/hand.png" id="7_ajdm4"]
 [ext_resource type="Script" uid="uid://coim24ccfwy1t" path="res://FirstTry/FuseRack.cs" id="8_krq04"]
-[ext_resource type="Texture2D" uid="uid://0l0r5tpcwtd3" path="res://Assets/fuse_slot2.png" id="9_es8m0"]
+[ext_resource type="Texture2D" uid="uid://dfqbthi6wofvg" path="res://Assets/fuse_slot2.png" id="9_es8m0"]
 [ext_resource type="Script" uid="uid://b842he8o18od8" path="res://FirstTry/FuseSlot.cs" id="10_l3ek6"]
-[ext_resource type="Texture2D" uid="uid://equx8xaa6yt3" path="res://Assets/fuse_active2.png" id="11_nbgrd"]
-[ext_resource type="Texture2D" uid="uid://di4g3ls32mkfb" path="res://Assets/fuse_burnt2.png" id="12_ovmj0"]
+[ext_resource type="Texture2D" uid="uid://ckrcqnv7fgsrq" path="res://Assets/fuse_active2.png" id="11_nbgrd"]
+[ext_resource type="Texture2D" uid="uid://dwni0ysum4msr" path="res://Assets/fuse_burnt2.png" id="12_ovmj0"]
 [ext_resource type="Script" uid="uid://qwlb1ff4k21b" path="res://FirstTry/NixieTimer.cs" id="13_6f2yf"]
-[ext_resource type="Texture2D" uid="uid://bd66sc8nwmpxh" path="res://Assets/3partimer.png" id="14_pb8t0"]
-[ext_resource type="Texture2D" uid="uid://bl3xukx7cxjc0" path="res://Assets/timer numbers.png" id="15_h1e8v"]
+[ext_resource type="Texture2D" uid="uid://ds6exxkoxy87m" path="res://Assets/3partimer.png" id="14_pb8t0"]
+[ext_resource type="Texture2D" uid="uid://do4f867pupwk2" path="res://Assets/timer numbers.png" id="15_h1e8v"]
 [ext_resource type="Script" uid="uid://ubxx3dj30gmj" path="res://Permafrost/DecompressionLever.cs" id="16_a0r7q"]
-[ext_resource type="Texture2D" uid="uid://ca4n0250dgrgi" path="res://Assets2/needle.png" id="17_42pny"]
+[ext_resource type="Texture2D" uid="uid://1ux6njtqsaxy" path="res://Assets2/needle.png" id="17_42pny"]
 [ext_resource type="Script" uid="uid://cx323wh7p6ome" path="res://Permafrost/PressureGaugeView.cs" id="17_ct3e5"]
 [ext_resource type="Script" uid="uid://4wyjqrq1dasv" path="res://Permafrost/PressureSubsystem.cs" id="17_f28ve"]
 [ext_resource type="Script" uid="uid://b7h0blid27mkf" path="res://Permafrost/ResourceSubsystem.cs" id="18_1pra0"]
-[ext_resource type="Texture2D" uid="uid://dg8w3p0pj41la" path="res://Assets2/levers_3.png" id="22_krq04"]
+[ext_resource type="Texture2D" uid="uid://6t6r6vpgh1tc" path="res://Assets2/levers_3.png" id="22_krq04"]
 [ext_resource type="Script" uid="uid://b3ih6w75vtpqb" path="res://Permafrost/HotWeldOverdrive.cs" id="23_krq04"]
-[ext_resource type="Script" uid="uid://gfnufvxe3y15" path="res://Permafrost/PopulationSubsystem.cs" id="26_es8m0"]
+[ext_resource type="Script" uid="uid://gfnufvxe3y15" path="res://Permafrost/PopulationSubsystem_old.cs" id="26_es8m0"]
 [ext_resource type="Script" uid="uid://dsdq23bej8nku" path="res://Permafrost/SkeletonCrewConsole.cs" id="27_nbgrd"]
 [ext_resource type="Script" uid="uid://det34uwoorbdv" path="res://Permafrost/ShiftDebriefModal.cs" id="28_ovmj0"]
 [ext_resource type="Script" uid="uid://ddu0b4ucqhnub" path="res://Permafrost/PopulationHUDView.cs" id="29_ovmj0"]
+[ext_resource type="Script" uid="uid://8ibtyjrutk6n" path="res://Permafrost/DiagnosticTerminal.cs" id="33_a0r7q"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_lx8uf"]
 atlas = ExtResource("3_ct3e5")
@@ -46,13 +50,29 @@ region = Rect2(1563.6978, 792.68353, 675.9551, 691.1451)
 atlas = ExtResource("3_ct3e5")
 region = Rect2(538.37274, 796.481, 672.15753, 675.955)
 
-[node name="DayShiftManager" type="Control" unique_id=1787509547]
+[node name="ShiftOrchestrator" type="Control" unique_id=1787509547 node_paths=PackedStringArray("_shiftClock", "_pressureSubsystem", "_resourceSubsystem", "_populationSubsystem", "_skeletonCrewSubsystem", "_dayShiftConsole", "_skeletonConsole", "_diagnosticTerminal", "_debriefModal", "_topBarView", "_pressureGaugeView", "_nixieTimer", "_fuseRack", "_decompressionLever", "_hotWeldOverdrive")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_h1e8v")
+_shiftClock = NodePath("DayShiftConsole/UpperConsoleArea/ShiftClock")
+_pressureSubsystem = NodePath("Subsystems/PressureSubsystem")
+_resourceSubsystem = NodePath("Subsystems/ResourceSubsystem")
+_populationSubsystem = NodePath("Subsystems/PopulationSubsystem")
+_skeletonCrewSubsystem = NodePath("Subsystems/SkeletonCrewSubsystem")
+_dayShiftConsole = NodePath("DayShiftConsole")
+_skeletonConsole = NodePath("SkeletonCrewConsole")
+_diagnosticTerminal = NodePath("CanvasLayer/GeneratorTerminal")
+_debriefModal = NodePath("CanvasLayer/ShiftDebriefModal")
+_topBarView = NodePath("DayShiftConsole/TopBarContainer")
+_pressureGaugeView = NodePath("DayShiftConsole/CenterChamberArea/PressureGauge")
+_nixieTimer = NodePath("DayShiftConsole/CenterChamberArea/NixieTimer")
+_fuseRack = NodePath("DayShiftConsole/UpperConsoleArea/FuseRack")
+_decompressionLever = NodePath("DayShiftConsole/LowerDeckArea/DecompressionLever")
+_hotWeldOverdrive = NodePath("DayShiftConsole/LowerDeckArea/DecompressionLever/HotWeldNode")
 
 [node name="Subsystems" type="Control" parent="." unique_id=412944784]
 anchors_preset = 0
@@ -69,7 +89,19 @@ script = ExtResource("18_1pra0")
 [node name="PopulationSubsystem" type="Node" parent="Subsystems" unique_id=2001488607]
 script = ExtResource("26_es8m0")
 
+[node name="SkeletonCrewSubsystem" type="Node" parent="Subsystems" unique_id=409253433 node_paths=PackedStringArray("_populationSubsystem", "_resourceSubsystem", "_pressureSubsystem")]
+script = ExtResource("4_pb8t0")
+_populationSubsystem = NodePath("../PopulationSubsystem")
+_resourceSubsystem = NodePath("../ResourceSubsystem")
+_pressureSubsystem = NodePath("../PressureSubsystem")
+
+[node name="AcousticDrillMinigame" type="Node" parent="Subsystems" unique_id=1544016715 node_paths=PackedStringArray("_resourceSubsystem", "_skeletonCrewSubsystem")]
+script = ExtResource("5_h1e8v")
+_resourceSubsystem = NodePath("../ResourceSubsystem")
+_skeletonCrewSubsystem = NodePath("../SkeletonCrewSubsystem")
+
 [node name="DayShiftConsole" type="Control" parent="." unique_id=449103022 node_paths=PackedStringArray("_nixieTimer", "_shiftClock", "_pressureSubsystem", "_resourceSubsystem", "_fuseRack", "_decompressionLever", "_topBarView", "_hotWeldOverdrive", "_pressureGaugeView", "_populationSubsystem", "_debriefModal", "_skeletonConsole", "_dayShiftConsole")]
+visible = false
 custom_minimum_size = Vector2(720, 1208)
 custom_maximum_size = Vector2(1080, 1920)
 layout_mode = 1
@@ -579,8 +611,7 @@ offset_right = 496.0
 offset_bottom = 1628.0
 text = "Main button"
 
-[node name="SkeletonCrewConsole" type="Control" parent="." unique_id=464163695]
-visible = false
+[node name="SkeletonCrewConsole" type="Control" parent="." unique_id=464163695 node_paths=PackedStringArray("_skeletonCrewSubsystem", "_drillMinigame", "_btnBanked", "_btnIdle", "_btnSurge", "_fuelEstimateLabel", "_btnDirNone", "_btnDirSoot", "_btnDirPatch", "_directiveStatusLabel", "_drillModal", "_launchDrillBtn", "_drillStatusLabel", "_valveButtons")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -588,21 +619,163 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("27_nbgrd")
+_skeletonCrewSubsystem = NodePath("../Subsystems/SkeletonCrewSubsystem")
+_drillMinigame = NodePath("../Subsystems/AcousticDrillMinigame")
+_btnBanked = NodePath("MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer/StanceButtons/BtnBanked")
+_btnIdle = NodePath("MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer/StanceButtons/BtnIdle")
+_btnSurge = NodePath("MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer/StanceButtons/BtnSurge")
+_fuelEstimateLabel = NodePath("MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer/FuelDepletionEstimateLabel")
+_btnDirNone = NodePath("MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer/DirectiveOptions/DirectiveNoneBtn")
+_btnDirSoot = NodePath("MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer/DirectiveOptions/DirectiveSootBtn")
+_btnDirPatch = NodePath("MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer/DirectiveOptions/DirectivePatchBtn")
+_directiveStatusLabel = NodePath("MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer/DirectiveStatusLabel")
+_drillModal = NodePath("AcousticDrillModal")
+_launchDrillBtn = NodePath("MainLayout/ConsoleVBox/DrillLauncherPanel/VBoxContainer/LaunchDrillBtn")
+_drillStatusLabel = NodePath("MainLayout/ConsoleVBox/DrillLauncherPanel/VBoxContainer/DrillStatusLabel")
+_valveButtons = [NodePath("AcousticDrillModal/DrillVBox/ValvesContainer/ValveBtn0"), NodePath("AcousticDrillModal/DrillVBox/ValvesContainer/ValveBtn1"), NodePath("AcousticDrillModal/DrillVBox/ValvesContainer/ValveBtn2"), NodePath("AcousticDrillModal/DrillVBox/ValvesContainer/ValveBtn3"), NodePath("AcousticDrillModal/DrillVBox/ValvesContainer/ValveBtn4"), NodePath("AcousticDrillModal/DrillVBox/ValvesContainer/ValveBtn5")]
 
-[node name="ColorRect" type="ColorRect" parent="SkeletonCrewConsole" unique_id=84972452]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="Background" type="ColorRect" parent="SkeletonCrewConsole" unique_id=84972452]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 1, 1, 0.24705882)
 
-[node name="Label" type="Label" parent="SkeletonCrewConsole/ColorRect" unique_id=582541055]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+[node name="AcousticDrillModal" type="PanelContainer" parent="SkeletonCrewConsole" unique_id=556627324]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -540.0
+offset_top = -960.0
+offset_right = 540.0
+offset_bottom = 960.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="Label2" type="Label" parent="SkeletonCrewConsole/ColorRect" unique_id=162527533]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+[node name="DrillVBox" type="VBoxContainer" parent="SkeletonCrewConsole/AcousticDrillModal" unique_id=1439209747]
+layout_mode = 2
+
+[node name="ModalHeader" type="HBoxContainer" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox" unique_id=736028472]
+layout_mode = 2
+
+[node name="RoundInfoLabel" type="Label" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox" unique_id=1762901184]
+layout_mode = 2
+text = "ROUND 1 / 4 - 4 STEPS"
+
+[node name="ValvesContainer" type="GridContainer" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox" unique_id=248061867]
+layout_mode = 2
+
+[node name="ValveBtn0" type="Button" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox/ValvesContainer" unique_id=1793296883]
+layout_mode = 2
+
+[node name="ValveBtn1" type="Button" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox/ValvesContainer" unique_id=152991845]
+layout_mode = 2
+
+[node name="ValveBtn2" type="Button" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox/ValvesContainer" unique_id=1272425395]
+layout_mode = 2
+
+[node name="ValveBtn3" type="Button" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox/ValvesContainer" unique_id=1440298380]
+layout_mode = 2
+
+[node name="ValveBtn4" type="Button" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox/ValvesContainer" unique_id=557645062]
+layout_mode = 2
+
+[node name="ValveBtn5" type="Button" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox/ValvesContainer" unique_id=1705730035]
+layout_mode = 2
+
+[node name="CooldownLabel" type="Label" parent="SkeletonCrewConsole/AcousticDrillModal/DrillVBox" unique_id=2120826999]
+layout_mode = 2
+
+[node name="MainLayout" type="MarginContainer" parent="SkeletonCrewConsole" unique_id=1834929906]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ConsoleVBox" type="VBoxContainer" parent="SkeletonCrewConsole/MainLayout" unique_id=1102100267]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="DamperControlPanel" type="PanelContainer" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox" unique_id=31165919]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DamperControlPanel" unique_id=809297204]
+layout_mode = 2
+
+[node name="SectionLabel" type="Label" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer" unique_id=2098335715]
+layout_mode = 2
+
+[node name="StanceButtons" type="HBoxContainer" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer" unique_id=1394942168]
+layout_mode = 2
+
+[node name="BtnBanked" type="Button" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer/StanceButtons" unique_id=911639943]
+layout_mode = 2
+text = "\"Banked (-75°C / 0.4x Coal)\""
+
+[node name="BtnIdle" type="Button" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer/StanceButtons" unique_id=963540562]
+layout_mode = 2
+text = "\"Steady (-52°C / 1.0x Coal)\""
+
+[node name="BtnSurge" type="Button" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer/StanceButtons" unique_id=186847988]
+layout_mode = 2
+text = "\"Surge (-36°C / 1.8x Coal)\""
+
+[node name="FuelDepletionEstimateLabel" type="Label" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DamperControlPanel/VBoxContainer" unique_id=766311996]
+layout_mode = 2
+text = "\"Est. Coal Depletion: ~14.2 hrs\""
+
+[node name="DirectivesPanel" type="PanelContainer" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox" unique_id=2144016332]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DirectivesPanel" unique_id=1791303818]
+layout_mode = 2
+
+[node name="SectionLabel" type="Label" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer" unique_id=566363875]
+layout_mode = 2
+text = "\"OVERNIGHT DIRECTIVES (Requires Crew)\""
+
+[node name="DirectiveOptions" type="VBoxContainer" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer" unique_id=437848022]
+layout_mode = 2
+
+[node name="DirectiveNoneBtn" type="CheckButton" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer/DirectiveOptions" unique_id=558705708]
+layout_mode = 2
+text = "\"Standby Rest (0 Hands)\""
+
+[node name="DirectiveSootBtn" type="CheckButton" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer/DirectiveOptions" unique_id=1450770015]
+layout_mode = 2
+text = "\"Scour Flues (+Cycle Time / 3 Hands)\""
+
+[node name="DirectivePatchBtn" type="CheckButton" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer/DirectiveOptions" unique_id=1504228416]
+layout_mode = 2
+text = "\"Patch Casing (+Integrity / 4 Hands)\""
+
+[node name="DirectiveStatusLabel" type="Label" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DirectivesPanel/VBoxContainer" unique_id=784597440]
+layout_mode = 2
+text = "\"Directive active: Scour Flues\""
+
+[node name="DrillLauncherPanel" type="PanelContainer" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox" unique_id=845032748]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DrillLauncherPanel" unique_id=537855105]
+layout_mode = 2
+
+[node name="SectionLabel" type="Label" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DrillLauncherPanel/VBoxContainer" unique_id=1656508191]
+layout_mode = 2
+text = "\"SUBTERRANEAN ACOUSTIC DRILL\""
+
+[node name="LaunchDrillBtn" type="Button" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DrillLauncherPanel/VBoxContainer" unique_id=1210355954]
+layout_mode = 2
+
+[node name="DrillStatusLabel" type="Label" parent="SkeletonCrewConsole/MainLayout/ConsoleVBox/DrillLauncherPanel/VBoxContainer" unique_id=146690364]
+layout_mode = 2
+text = "\"Status: Ready (Requires 3 Hands)\""
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=899351253]
 
@@ -737,3 +910,99 @@ text = "Gravely Sick Work"
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "Close Ledger"
+
+[node name="GeneratorTerminal" type="Control" parent="CanvasLayer" unique_id=538452926 node_paths=PackedStringArray("_resourceSubsystem", "_pressureSubsystem", "_populationSubsystem", "_skeletonCrewSubsystem")]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("33_a0r7q")
+_resourceSubsystem = NodePath("../../Subsystems/ResourceSubsystem")
+_pressureSubsystem = NodePath("../../Subsystems/PressureSubsystem")
+_populationSubsystem = NodePath("../../Subsystems/PopulationSubsystem")
+_skeletonCrewSubsystem = NodePath("../../Subsystems/SkeletonCrewSubsystem")
+
+[node name="BackgroundDimmer" type="ColorRect" parent="CanvasLayer/GeneratorTerminal" unique_id=1660915108]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="TerminalFrame" type="PanelContainer" parent="CanvasLayer/GeneratorTerminal" unique_id=523240982]
+layout_mode = 0
+offset_left = 182.0
+offset_top = 1309.0
+offset_right = 520.0
+offset_bottom = 1635.0
+
+[node name="MainVBox" type="VBoxContainer" parent="CanvasLayer/GeneratorTerminal/TerminalFrame" unique_id=1400888940]
+layout_mode = 2
+
+[node name="HeaderBar" type="HBoxContainer" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox" unique_id=1011144914]
+layout_mode = 2
+
+[node name="TerminalTitle" type="Label" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/HeaderBar" unique_id=139412756]
+layout_mode = 2
+text = "TELEMETRY CHIEFTAIN Mk.IV"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/HeaderBar" unique_id=1962806700]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MinimizeButton" type="Button" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/HeaderBar" unique_id=813136742]
+layout_mode = 2
+text = "[-]"
+
+[node name="NavTabBar" type="HBoxContainer" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox" unique_id=844839467]
+layout_mode = 2
+
+[node name="TabLogsBtn" type="Button" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/NavTabBar" unique_id=534268680]
+layout_mode = 2
+
+[node name="TabGenBtn" type="Button" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/NavTabBar" unique_id=408337381]
+layout_mode = 2
+
+[node name="TabCityBtn" type="Button" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/NavTabBar" unique_id=916767703]
+layout_mode = 2
+
+[node name="TabResBtn" type="Button" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/NavTabBar" unique_id=1427986595]
+layout_mode = 2
+
+[node name="DisplayContent" type="MarginContainer" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox" unique_id=1518475686]
+clip_contents = true
+layout_mode = 2
+
+[node name="ViewLogs" type="ScrollContainer" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/DisplayContent" unique_id=266112738]
+layout_mode = 2
+
+[node name="LogsVBox" type="VBoxContainer" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/DisplayContent/ViewLogs" unique_id=1187753658]
+layout_mode = 2
+
+[node name="LogsText" type="RichTextLabel" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/DisplayContent/ViewLogs/LogsVBox" unique_id=1944796491]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="ViewGenerator" type="VBoxContainer" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/DisplayContent" unique_id=1526000093]
+layout_mode = 2
+
+[node name="GenStatsLabel" type="RichTextLabel" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/DisplayContent/ViewGenerator" unique_id=2009735648]
+layout_mode = 2
+
+[node name="ViewCity" type="VBoxContainer" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/DisplayContent" unique_id=1557717032]
+layout_mode = 2
+
+[node name="CityStatsLabel" type="RichTextLabel" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/DisplayContent/ViewCity" unique_id=769573873]
+layout_mode = 2
+
+[node name="ViewResources" type="VBoxContainer" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/DisplayContent" unique_id=1390342987]
+layout_mode = 2
+
+[node name="ResStatsLabel" type="RichTextLabel" parent="CanvasLayer/GeneratorTerminal/TerminalFrame/MainVBox/DisplayContent/ViewResources" unique_id=1469110756]
+layout_mode = 2
+
+[node name="MaximizeTrigger" type="Button" parent="CanvasLayer/GeneratorTerminal/TerminalFrame" unique_id=1793263009]
+layout_mode = 2
