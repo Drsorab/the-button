@@ -9,6 +9,7 @@ namespace PermafrostChieftain.Orchestration
     // Βοηθητική κλάση για την ομαδοποίηση των στοιχείων UI κάθε κάρτας εργασίας (Job Card)
     public class JobCardUI
     {
+        public string BaseName;
         public Label JobNameLabel;
         public Label HazardLabel;
         public ProgressBar JobProgressBar;
@@ -157,9 +158,12 @@ namespace PermafrostChieftain.Orchestration
             var container = parent.GetNode<PanelContainer>(nodeName);
             var vbox = container.GetNode<VBoxContainer>("JobVBox");
 
+            var nameLabel = vbox.GetNode<Label>("HeaderHBox/JobNameLabel"); 
+
             var card = new JobCardUI
             {
-                JobNameLabel = vbox.GetNode<Label>("HeaderHBox/JobNameLabel"),
+                BaseName = nameLabel.Text, 
+                JobNameLabel = nameLabel,
                 HazardLabel = vbox.GetNode<Label>("HeaderHBox/HazardLabel"),
                 JobProgressBar = vbox.GetNode<ProgressBar>("JobProgressBar"),
                 MinusBtn = vbox.GetNode<Button>("StaffingHBox/MinusBtn"),
@@ -167,7 +171,6 @@ namespace PermafrostChieftain.Orchestration
                 PlusBtn = vbox.GetNode<Button>("StaffingHBox/PlusBtn")
             };
 
-            // Σύνδεση των κουμπιών αύξησης/μείωσης εργατών
             card.PlusBtn.Pressed += () => _gameOrchestrator.Population.TryAdjustWorkers(type, 1);
             card.MinusBtn.Pressed += () => _gameOrchestrator.Population.TryAdjustWorkers(type, -1);
 
@@ -293,7 +296,7 @@ namespace PermafrostChieftain.Orchestration
             // --- Ενημέρωση Καρτών Εργασιών (Job Cards) ---
             _unassignedReserveLabel.Text = $"Reserve Hands: {w.UnassignedReserve}";
             _workshopHazardBar.Value = l.WorkshopHazardLevel * 100.0;
-
+            TimeSpan time = new TimeSpan();
             foreach (var jobData in _gameOrchestrator.LatestJobsTelemetry)
             {
                 if (_jobCards.TryGetValue(jobData.Type, out JobCardUI card))
@@ -301,7 +304,24 @@ namespace PermafrostChieftain.Orchestration
                     card.JobProgressBar.Value = jobData.ProgressPercentage;
                     card.StaffingLabel.Text = $"{jobData.AssignedWorkers} Hands";
 
-                    // Απενεργοποίηση του κουμπιού '+' αν δεν υπάρχουν διαθέσιμοι υγιείς εργάτες
+                    string timeStatus = "[ΠΑΥΣΗ]"; 
+                    if (jobData.AssignedWorkers > 0)
+                    {
+                        // Διαιρούμε τον υπολειπόμενο χρόνο με την εκθετική απόδοση των εργατών
+                        double effectiveRate = Math.Pow(jobData.AssignedWorkers, 0.8);
+                        double realSecondsLeft = jobData.WorkRemaining / effectiveRate;
+
+                        // Μετατροπή δευτερολέπτων σε μορφή Λεπτά:Δευτερόλεπτα
+                        time = TimeSpan.FromSeconds(realSecondsLeft);
+                        if (time.TotalHours >= 1)
+                            timeStatus = $"{(int)time.TotalHours:D2}:{time.Minutes:D2}:{time.Seconds:D2}";
+                        else
+                            timeStatus = $"{time.Minutes:D2}:{time.Seconds:D2}";
+                    }
+
+                    // Ενημέρωση του τίτλου (π.χ. "Workshop Machining - 02:45")
+                    card.JobNameLabel.Text = $"{card.BaseName} - {timeStatus}";
+
                     card.PlusBtn.Disabled = w.UnassignedReserve <= 0;
                     card.MinusBtn.Disabled = jobData.AssignedWorkers <= 0;
                 }
