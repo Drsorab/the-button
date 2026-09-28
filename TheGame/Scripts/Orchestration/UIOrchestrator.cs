@@ -39,8 +39,8 @@ namespace PermafrostChieftain.Orchestration
         // Νέα στοιχεία: Οθόνη Εκτόνωσης (Vent Routing Modal)
         private PanelContainer _ventRoutingModal;
         private Label _routingTitleLabel;
-        private HSlider _cityVentSlider, _workshopVentSlider, _drillVentSlider;
-        private Label _cityVentValue, _workshopVentValue, _drillVentValue, _retainVentValue;
+        private HSlider _cityVentSlider, _workshopVentSlider, _drillVentSlider, _atmosphereVentSlider;
+        private Label _cityVentValue, _workshopVentValue, _drillVentValue, _atmosphereVentValue, _retainVentValue;
         private Button _confirmVentButton;
 
         // Λεξικό για γρήγορη πρόσβαση στα UI στοιχεία των εργασιών
@@ -49,6 +49,8 @@ namespace PermafrostChieftain.Orchestration
         private OptionButton _microBleedTargetDropdown;
         private Button _adminPanelButton;
         private PanelContainer _adminPanelModal;
+
+        private Button _blowoutButton;
         public override void _Ready()
         {
             _gameOrchestrator = GetNode<GameOrchestrator>("../");
@@ -58,8 +60,36 @@ namespace PermafrostChieftain.Orchestration
                 _gameOrchestrator.InitializeSimulation();
             }
 
-            ConnectSimulationSignals();
+            // 1. ΠΡΩΤΑ κάνουμε την ανάκτηση των Nodes ώστε να μην είναι null.
             BindUiNodes();
+
+            // 2. Σύνδεση των UI Timeouts με τα ρολόγια του συστήματος
+            _gameOrchestrator.Clock.VentModalTimeoutExpired += () =>
+            {
+                // Το παράθυρο εκτόνωσης κλείνει βίαια αν λήξει ο χρόνος του Modal
+                if (_ventRoutingModal != null && _ventRoutingModal.Visible)
+                {
+                    _ventRoutingModal.Visible = false;
+                }
+
+                GD.Print("UI: Το παράθυρο εκτόνωσης έκλεισε βίαια λόγω timeout!");
+            };
+
+            // Το κουμπί εκτόνωσης (Vent Actuator) πρέπει να κρύβεται/αλλάζει κατάσταση όταν αλλάζει η φάση 
+            _gameOrchestrator.PhaseTransitionTriggered += (phaseIndex) =>
+            {
+                CyclePhase newPhase = (CyclePhase)phaseIndex;
+
+                // Το κουμπί ορατότητα και κατάσταση ενεργοποίησης ελέγχεται κυρίως από τη φάση
+                if (_ventActuatorButton != null)
+                {
+                    _ventActuatorButton.Visible = (newPhase == CyclePhase.VentPending || newPhase == CyclePhase.VentRouting || newPhase == CyclePhase.DayActive);
+                    // Η ενεργοποίηση του κουμπιού (να πατιέται) ρυθμίζεται ήδη στην OnTelemetryUpdated
+                }
+            };
+
+            // 3. Σύνδεση των υπόλοιπων γεγονότων
+            ConnectSimulationSignals();
             BindInputEvents();
 
             SetShiftView(CyclePhase.DayActive);
@@ -95,6 +125,7 @@ namespace PermafrostChieftain.Orchestration
             _casingIntegrityBar = boilerVBox.GetNode<ProgressBar>("CasingRowHBox/CasingIntegrityBar");
             _sootTitleLabel = boilerVBox.GetNode<Label>("SootRowHBox/SootTitleLabel");
             _sootFoulingBar = boilerVBox.GetNode<ProgressBar>("SootRowHBox/SootFoulingBar");
+            _blowoutButton = boilerVBox.GetNode<Button>("SootRowHBox/BlowoutButton");
 
             var chronoVBox = stack.GetNode<VBoxContainer>("PersistentChronometerPanel/ChronoVBox");
             _cycleClockLabel = chronoVBox.GetNode<Label>("MasterClockHBox/CycleClockLabel");
@@ -131,20 +162,24 @@ namespace PermafrostChieftain.Orchestration
             // --- Ανάκτηση του Vent Routing Modal ---
             var overlay = GetNode<Control>("ModalOverlayLayer/MarginContainer");
             _ventRoutingModal = overlay.GetNode<PanelContainer>("VentRoutingModal");
-            var routingVBox = _ventRoutingModal.GetNode<VBoxContainer>("RoutingVBox");
 
-            _routingTitleLabel = routingVBox.GetNode<Label>("RoutingTitleLabel");
-            _cityVentSlider = routingVBox.GetNode<HSlider>("CityRoutingHBox/CityVentSlider");
-            _cityVentValue = routingVBox.GetNode<Label>("CityRoutingHBox/CityVentValueLabel");
+            // Τα στοιχεία είναι απευθείας παιδιά, όπως φαίνεται στο δέντρο
+            _cityVentSlider = _ventRoutingModal.GetNode<HSlider>("RoutingVBox/CityRoutingHBox/CityVentSlider");
+            _cityVentValue = _ventRoutingModal.GetNode<Label>("RoutingVBox/CityRoutingHBox/CityVentValueLabel");
 
-            _workshopVentSlider = routingVBox.GetNode<HSlider>("WorkshopRoutingHBox/WorkshopVentSlider");
-            _workshopVentValue = routingVBox.GetNode<Label>("WorkshopRoutingHBox/WorkshopVentValueLabel");
+            _workshopVentSlider = _ventRoutingModal.GetNode<HSlider>("RoutingVBox/WorkshopRoutingHBox/WorkshopVentSlider");
+            _workshopVentValue = _ventRoutingModal.GetNode<Label>("RoutingVBox/WorkshopRoutingHBox/WorkshopVentValueLabel");
 
-            _drillVentSlider = routingVBox.GetNode<HSlider>("DrillRoutingHBox/DrillVentSlider");
-            _drillVentValue = routingVBox.GetNode<Label>("DrillRoutingHBox/DrillVentValueLabel");
+            _drillVentSlider = _ventRoutingModal.GetNode<HSlider>("RoutingVBox/DrillRoutingHBox/DrillVentSlider");
+            _drillVentValue = _ventRoutingModal.GetNode<Label>("RoutingVBox/DrillRoutingHBox/DrillVentValueLabel");
 
-            _retainVentValue = routingVBox.GetNode<Label>("RetainRoutingHBox/RetainVentValueLabel");
-            _confirmVentButton = routingVBox.GetNode<Button>("ConfirmVentButton");
+            // Η εκτόνωση στην ατμόσφαιρα
+            _atmosphereVentSlider = _ventRoutingModal.GetNode<HSlider>("RoutingVBox/AtmosphereRoutingHBox/AtmosphereVentSlider");
+            _atmosphereVentValue = _ventRoutingModal.GetNode<Label>("RoutingVBox/AtmosphereRoutingHBox/AtmosphereVentValueLabel");
+
+            // Το label που θα δείχνει την εναπομείνασα πίεση
+            _retainVentValue = _ventRoutingModal.GetNode<Label>("RetainedPressureValueLabel");
+            _confirmVentButton = _ventRoutingModal.GetNode<Button>("RoutingVBox/ConfirmVentButton");
 
             // Το κουμπί από το κάτω μενού
             _adminPanelButton = stack.GetNode<Button>("PersistentBottomDock/DockHBox/AdminPanelButton");
@@ -186,7 +221,8 @@ namespace PermafrostChieftain.Orchestration
             _cityVentSlider.ValueChanged += _ => UpdateVentRoutingValues();
             _workshopVentSlider.ValueChanged += _ => UpdateVentRoutingValues();
             _drillVentSlider.ValueChanged += _ => UpdateVentRoutingValues();
-
+            _atmosphereVentSlider.ValueChanged += _ => UpdateVentRoutingValues(); 
+            _blowoutButton.Pressed += () => _gameOrchestrator.TriggerEmergencyBlowout();
             _confirmVentButton.Pressed += OnConfirmVentRouting;
             _adminPanelButton.Pressed += () => _adminPanelModal.Visible = true;
             _microBleedTargetDropdown.ItemSelected += (index) =>
@@ -200,43 +236,45 @@ namespace PermafrostChieftain.Orchestration
             double city = _cityVentSlider.Value;
             double workshop = _workshopVentSlider.Value;
             double drill = _drillVentSlider.Value;
+            double atmosphere = _atmosphereVentSlider.Value;
 
-            double total = city + workshop + drill;
+            double total = city + workshop + drill + atmosphere;
             double currentPressure = _gameOrchestrator.Boiler.SteamPressure;
 
             // Αμυντικός έλεγχος μήπως τα sliders υπερβαίνουν τη διαθέσιμη πίεση
             if (total > currentPressure) return;
 
-            double retain = currentPressure - total;
-
-            // Κλείσιμο του modal και αποστολή των δεδομένων στο Orchestrator
+            // Το 5ο στοιχείο (retain) υπολογίζεται αυτόματα από τον Orchestrator, 
+            // στέλνουμε τα 4 που διάλεξε ενεργά ο παίκτης.
             _ventRoutingModal.Visible = false;
-            _gameOrchestrator.ExecuteVentRouting(city, workshop, drill, retain);
+            _gameOrchestrator.ExecuteVentRouting(city, workshop, drill, atmosphere);
         }
 
         private void UpdateVentRoutingValues()
         {
             double currentPressure = _gameOrchestrator.Boiler.SteamPressure;
-            double totalUsed = _cityVentSlider.Value + _workshopVentSlider.Value + _drillVentSlider.Value;
+            double totalUsed = _cityVentSlider.Value + _workshopVentSlider.Value + _drillVentSlider.Value + _atmosphereVentSlider.Value;
 
             // Ενημέρωση των ετικετών (Labels) με τις τρέχουσες επιλογές
-            _cityVentValue.Text = $"{_cityVentSlider.Value} Bar";
-            _workshopVentValue.Text = $"{_workshopVentSlider.Value} Bar";
-            _drillVentValue.Text = $"{_drillVentSlider.Value} Bar";
+            _cityVentValue.Text = $"{_cityVentSlider.Value:F0} Bar";
+            _workshopVentValue.Text = $"{_workshopVentSlider.Value:F0} Bar";
+            _drillVentValue.Text = $"{_drillVentSlider.Value:F0} Bar";
+            _atmosphereVentValue.Text = $"{_atmosphereVentSlider.Value:F0} Bar";
 
+            // Υπολογισμός και εμφάνιση της πίεσης που θα παραμείνει στον λέβητα
             double retained = Math.Max(0, currentPressure - totalUsed);
-            _retainVentValue.Text = $"{retained:F1} Bar";
 
-            // Απενεργοποίηση του κουμπιού επιβεβαίωσης αν η ζήτηση ξεπερνά το διαθέσιμο ρεύμα (πίεση)
-            _confirmVentButton.Disabled = totalUsed > currentPressure;
             if (totalUsed > currentPressure)
             {
                 _retainVentValue.Text = "INSUFFICIENT PRESSURE";
                 _retainVentValue.Modulate = new Color(1, 0, 0);
+                _confirmVentButton.Disabled = true;
             }
             else
             {
-                _retainVentValue.Modulate = new Color(1, 1, 1);
+                _retainVentValue.Text = $"Retained Pressure: {retained:F1} Bar";
+                _retainVentValue.Modulate = new Color(0.2f, 1f, 0.2f); // Πράσινο για να φαίνεται ασφαλές
+                _confirmVentButton.Disabled = false;
             }
         }
 
@@ -265,7 +303,7 @@ namespace PermafrostChieftain.Orchestration
             _casingIntegrityBar.Value = b.CasingIntegrity;
             _sootTitleLabel.Text = $"SOOT: {b.SootFraction * 100.0:F1}%";
             _sootFoulingBar.Value = b.SootFraction * 100.0;
-
+            _blowoutButton.Disabled = b.SteamPressure < GameSettings.Instance.BlowoutPressureCost;
             // Ενημέρωση ενδείξεων των Ασφαλειών (Fuses)
             var children = _fuseRackContainer.GetChildren();
             for (int i = 0; i < children.Count; i++)
@@ -299,31 +337,40 @@ namespace PermafrostChieftain.Orchestration
             TimeSpan time = new TimeSpan();
             foreach (var jobData in _gameOrchestrator.LatestJobsTelemetry)
             {
-                if (_jobCards.TryGetValue(jobData.Type, out JobCardUI card))
-                {
-                    card.JobProgressBar.Value = jobData.ProgressPercentage;
-                    card.StaffingLabel.Text = $"{jobData.AssignedWorkers} Hands";
+                // 1. Έλεγχος γρήγορης εξόδου (Early exit) για αποφυγή βαθιών nested if
+                if (!_jobCards.TryGetValue(jobData.Type, out JobCardUI card)) continue;
 
-                    string timeStatus = "[ΠΑΥΣΗ]"; 
+                // 2. Ενημέρωση των κουμπιών και των εργατών (Ισχύει για ΟΛΕΣ τις εργασίες)
+                card.StaffingLabel.Text = $"{jobData.AssignedWorkers} Hands";
+                card.PlusBtn.Disabled = w.UnassignedReserve <= 0;
+                card.MinusBtn.Disabled = jobData.AssignedWorkers <= 0;
+
+                if (jobData.Type == JobType.StokeFurnace)
+                {
+                    // 3. Ειδικός χειρισμός μόνο για τον φούρνο
+                    double coalPerHour = jobData.AssignedWorkers * GameSettings.Instance.StokeCoalPerWorkerPerHour;
+                    card.JobNameLabel.Text = $"{card.BaseName} - Κατανάλωση: {coalPerHour:F1} kg/h";
+                    card.JobProgressBar.Value = 100.0;
+                }
+                else
+                {
+                    // 4. Χειρισμός για όλες τις υπόλοιπες εργασίες
+                    card.JobProgressBar.Value = jobData.ProgressPercentage;
+
                     if (jobData.AssignedWorkers > 0)
                     {
-                        // Διαιρούμε τον υπολειπόμενο χρόνο με την εκθετική απόδοση των εργατών
                         double effectiveRate = Math.Pow(jobData.AssignedWorkers, 0.8);
                         double realSecondsLeft = jobData.WorkRemaining / effectiveRate;
 
-                        // Μετατροπή δευτερολέπτων σε μορφή Λεπτά:Δευτερόλεπτα
+                        // 5. Βελτιστοποιημένη μορφοποίηση χρόνου χωρίς δημιουργία περιττών strings
                         time = TimeSpan.FromSeconds(realSecondsLeft);
-                        if (time.TotalHours >= 1)
-                            timeStatus = $"{(int)time.TotalHours:D2}:{time.Minutes:D2}:{time.Seconds:D2}";
-                        else
-                            timeStatus = $"{time.Minutes:D2}:{time.Seconds:D2}";
+                        string format = time.TotalHours >= 1 ? @"hh\:mm\:ss" : @"mm\:ss";
+                        card.JobNameLabel.Text = $"{card.BaseName} - {time.ToString(format)}";
                     }
-
-                    // Ενημέρωση του τίτλου (π.χ. "Workshop Machining - 02:45")
-                    card.JobNameLabel.Text = $"{card.BaseName} - {timeStatus}";
-
-                    card.PlusBtn.Disabled = w.UnassignedReserve <= 0;
-                    card.MinusBtn.Disabled = jobData.AssignedWorkers <= 0;
+                    else
+                    {
+                        card.JobNameLabel.Text = $"{card.BaseName} - [ΠΑΥΣΗ]";
+                    }
                 }
             }
         }
@@ -351,7 +398,8 @@ namespace PermafrostChieftain.Orchestration
                 _cityVentSlider.Value = 0;
                 _workshopVentSlider.Value = 0;
                 _drillVentSlider.Value = 0;
-
+                _atmosphereVentSlider.Value = 0;
+                _atmosphereVentSlider.MaxValue = currentPressure;
                 // Ορισμός της μέγιστης επιτρεπτής τιμής κάθε slider (δεν μπορεί να ξεπερνά τη συνολική πίεση)
                 _cityVentSlider.MaxValue = currentPressure;
                 _workshopVentSlider.MaxValue = currentPressure;

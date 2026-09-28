@@ -54,9 +54,10 @@ namespace PermafrostChieftain.Simulation
         {
             if (AssignedWorkers <= 0 || WorkRemaining <= 0) return false;
 
+            if (Type == JobType.StokeFurnace) return false;
+
             // Εκθετική απόδοση: Οι 10 εργάτες δεν είναι ακριβώς 10 φορές πιο γρήγοροι από 1.
             double effectiveWorkRate = Math.Pow(AssignedWorkers, 0.8);
-
             WorkRemaining -= effectiveWorkRate * deltaTime;
 
             if (WorkRemaining <= 0)
@@ -94,6 +95,13 @@ namespace PermafrostChieftain.Simulation
         {
             WorkRemaining = BaseWorkRequired * (1.0 - Math.Clamp(ratio, 0.0, 1.0));
         }
+
+        public void SetWorkRemaining(double amount)
+        {
+            WorkRemaining = amount;
+        }
+
+
     }
 
     public class JobManager
@@ -136,7 +144,7 @@ namespace PermafrostChieftain.Simulation
             //Jobs.Add(JobType.ManualTinkering, new JobOrder(JobType.ManualTinkering, 4500.0, 5));
         }
 
-        public void Tick(double deltaTime)
+        public void Tick(double deltaTime, InventorySubsystem inventory)
         {
             foreach (var kvp in Jobs)
             {
@@ -163,6 +171,8 @@ namespace PermafrostChieftain.Simulation
                     else
                     {
                         currentJob.ResetJob();
+                        // Κάθε φορά που μια απλή δουλειά γίνεται reset, ελέγχουμε αν άλλαξε ο εξοπλισμός (π.χ. βούρτσες)
+                        ApplyEquipmentBuffs(currentJob.Type, inventory);
                     }
                 }
             }
@@ -202,6 +212,29 @@ namespace PermafrostChieftain.Simulation
             // Υπολογισμός μετάλλου (scrap) με βάση τις ρυθμίσεις
             return GameSettings.Instance.BaseScrapMaintReward + (DaysSinceLastWorkshopMaint * GameSettings.Instance.MaintMultiplierPerDay);
         }
+
+        // Καλείται για να εφαρμόσει τα Equipment Buffs στον απαιτούμενο χρόνο μιας εργασίας
+        public void ApplyEquipmentBuffs(JobType type, InventorySubsystem inventory)
+        {
+            if (!Jobs.TryGetValue(type, out var job)) return;
+
+            // Παίρνουμε τον αρχικό (απόλυτο) χρόνο από τα Settings
+            double baseWork = GameSettings.Instance.JobConfigs[type].BaseWork;
+
+            // --- Buff: Wire Brushes ---
+            if (type == JobType.ScourFlues || type == JobType.DeepScour)
+            {
+                if (inventory != null && inventory.GetEquippedItem("Wire Brushes") != null)
+                {
+                    // Π.χ. αν ο πολλαπλασιαστής είναι 0.5, ο χρόνος μειώνεται στο μισό
+                    baseWork *= GameSettings.Instance.BrushWorkReductionMultiplier;
+                }
+            }
+
+            // Ενημερώνουμε την εργασία
+            job.SetBaseWork(baseWork);
+        }
+
 
         // Καλείται από το UI όταν ο παίκτης αλλάζει συνταγή από το Dropdown
         public void SetActiveCraftingRecipe(string recipeName)

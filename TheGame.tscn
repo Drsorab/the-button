@@ -156,6 +156,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 show_percentage = false
 
+[node name="BlowoutButton" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBoilerStatusPanel/BoilerVBox/SootRowHBox" unique_id=963641204]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "[BLOWOUT]"
+
 [node name="PersistentHeaderPanel" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack" unique_id=1024086021]
 layout_mode = 2
 
@@ -821,17 +826,17 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Admin"
 
-[node name="OpenTerminalButton" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBottomDock/DockHBox" unique_id=1323823897]
+[node name="OpenInventoryButton" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBottomDock/DockHBox" unique_id=1323823897]
 custom_minimum_size = Vector2(150, 54)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "DIAGNOSTICS"
+text = "EQUIPMENT & INVENTORY"
 
-[node name="EmergencyActionShortcutButton" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBottomDock/DockHBox" unique_id=1816567592]
+[node name="OpenShopButton" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBottomDock/DockHBox" unique_id=1816567592]
 custom_minimum_size = Vector2(180, 54)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "EMERGENCY VENT"
+text = "WORKSHOP & GEAR"
 
 [node name="ModalOverlayLayer" type="Control" parent="MainLayout" unique_id=1500728317]
 layout_mode = 1
@@ -1099,24 +1104,27 @@ size_flags_horizontal = 3
 layout_mode = 2
 text = "0 Bar"
 
-[node name="RetainRoutingHBox" type="HBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal/RoutingVBox" unique_id=518211712]
+[node name="AtmosphereRoutingHBox" type="HBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal/RoutingVBox" unique_id=518211712]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal/RoutingVBox/RetainRoutingHBox" unique_id=138676282]
+[node name="Label" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal/RoutingVBox/AtmosphereRoutingHBox" unique_id=138676282]
 layout_mode = 2
 text = "Release:"
 
-[node name="RetainVentSlider" type="HSlider" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal/RoutingVBox/RetainRoutingHBox" unique_id=695310467]
+[node name="AtmosphereVentSlider" type="HSlider" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal/RoutingVBox/AtmosphereRoutingHBox" unique_id=695310467]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RetainVentValueLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal/RoutingVBox/RetainRoutingHBox" unique_id=1754883365]
+[node name="AtmosphereVentValueLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal/RoutingVBox/AtmosphereRoutingHBox" unique_id=1754883365]
 layout_mode = 2
 text = "0 Bar"
 
 [node name="ConfirmVentButton" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal/RoutingVBox" unique_id=1658657515]
 layout_mode = 2
 text = "EXECUTE VENT ROUTING"
+
+[node name="RetainedPressureValueLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/VentRoutingModal" unique_id=1859258580]
+layout_mode = 2
 
 [node name="AdminPanelModal" type="PanelContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer" unique_id=1976342539]
 visible = false
@@ -1138,6 +1146,16 @@ text = "ADMIN SETTINGS & DEBUG"
 [node name="Spacer" type="Control" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/HeaderHBox" unique_id=583054319]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="ResetTimeBtn" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/HeaderHBox" unique_id=1202004286]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "1x TIME"
+
+[node name="SpeedUpBtn" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/HeaderHBox" unique_id=315879472]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = ">> SPEED"
 
 [node name="CloseAdminButton" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/HeaderHBox" unique_id=1142742837]
 layout_mode = 2
@@ -1186,6 +1204,30 @@ layout_mode = 2
 metadata/_tab_index = 4
 
 [node name="ContentVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer/Tab_Jobs" unique_id=781783863]
+layout_mode = 2
+
+[node name="Tab_Hull" type="ScrollContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer" unique_id=1865730957]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 5
+
+[node name="ContentVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer/Tab_Hull" unique_id=1589614410]
+layout_mode = 2
+
+[node name="Tab_Soot" type="ScrollContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer" unique_id=1971386412]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 6
+
+[node name="ContentVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer/Tab_Soot" unique_id=961688816]
+layout_mode = 2
+
+[node name="Tab_Vent" type="ScrollContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer" unique_id=2036343339]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 7
+
+[node name="ContentVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer/Tab_Vent" unique_id=599322534]
 layout_mode = 2
 
 [node name="SaveSettingsButton" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox" unique_id=1082500903]

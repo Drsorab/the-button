@@ -22,57 +22,66 @@ namespace PermafrostChieftain.Simulation
         {
             if (deltaTime <= 0.0) return;
 
-            // --- 1. Υπολογισμός Αιθάλης (Soot) ---
-            if (coreTemp < 450.0)
-            {
-                // Κάτω από 450 βαθμούς η αιθάλη συσσωρεύεται ταχύτατα
-                SootFraction += (0.01 / 60.0) * deltaTime;
-            }
-            else if (coreTemp > 650.0)
-            {
-                // Πάνω από 650 βαθμούς, καίγεται και καθαρίζει ελαφρώς μόνη της
-                SootFraction -= (0.005 / 60.0) * deltaTime;
-            }
-            SootFraction = Math.Clamp(SootFraction, 0.0, 1.0);
-
-            // --- 2. Διαχείριση Πίεσης (Pressure) ---
+            // --- 1. Διαχείριση Πίεσης (Pressure) ---
             if (currentPhase == CyclePhase.DayActive)
             {
-                // Τη μέρα, η πίεση αυξάνεται (Επιρροή από τη θερμοκρασία και την αιθάλη)
-                double sootMultiplier = 1.0 + (SootFraction * 0.5); // H αιθάλη αυξάνει την πίεση γρηγορότερα
-                double basePressureRate = (coreTemp / 550.0) * 0.5; // 0.5 Bar ανά δευτερόλεπτο σε κανονικές συνθήκες
+                double netPressureRate = 0.0;
 
-                // Αν το κέλυφος είναι ραγισμένο, χάνουμε πίεση, καθιστώντας δύσκολη τη συγκέντρωση νομίσματος
-                double crackLeak = IsHullCracked ? GameSettings.Instance.HullCrackedLeakRate : 0.0;
+                // Το νερό δεν "νιώθει" όλη τη θερμοκρασία γιατί η καπνιά δρα ως μόνωση
+                double insulationFactor = 1.0 - (SootFraction * GameSettings.Instance.SootInsulationMultiplier);
+                double effectiveWaterTemp = coreTemp * Math.Max(0.1, insulationFactor); // Δεν πέφτει ποτέ κάτω από το 10% της θερμότητας
 
-                double netPressureRate = (basePressureRate * sootMultiplier) - crackLeak;
+                if (effectiveWaterTemp >= GameSettings.Instance.BoilingPointThreshold)
+                {
+                    double basePressureRate = (effectiveWaterTemp / GameSettings.Instance.OptimalCoreTemp) * GameSettings.Instance.BasePressureGenerationRate;
+                    double crackLeak = IsHullCracked ? GameSettings.Instance.HullCrackedLeakRate : 0.0;
 
-                if (IsOverdriveActive) netPressureRate *= 2.0;
+                    netPressureRate = basePressureRate - crackLeak;
+
+                    if (IsOverdriveActive) netPressureRate *= 2.0;
+                }
+                else
+                {
+                    // Αν δεν βράζει, η πίεση πέφτει μόνο αν υπάρχει ρήγμα στο κέλυφος
+                    double crackLeak = IsHullCracked ? GameSettings.Instance.HullCrackedLeakRate : 0.0;
+                    netPressureRate = -crackLeak;
+                }
 
                 SteamPressure += netPressureRate * deltaTime;
             }
             else if (currentPhase == CyclePhase.NightBleed)
             {
-                // Τη νύχτα, η αποθηκευμένη πίεση αιμορραγεί αργά για να ζεστάνει την πόλη
-                double nightBleedRate = GameSettings.Instance.NightBleedRate; // Ρυθμός απώλειας τη νύχτα
-                SteamPressure -= nightBleedRate * deltaTime;
+                // Αργή αποσυμπίεση κατά τη διάρκεια της νύχτας
+                double nightLeak = GameSettings.Instance.NightBleedRate * deltaTime;
+                double crackLeak = IsHullCracked ? GameSettings.Instance.HullCrackedLeakRate : 0.0;
+
+                SteamPressure -= (nightLeak + crackLeak);
+            }
+            else
+            {
+                // Σε ενδιάμεσες φάσεις (π.χ. Twilight), χάνουμε πίεση μόνο αν υπάρχει ρήγμα
+                double crackLeak = IsHullCracked ? GameSettings.Instance.HullCrackedLeakRate : 0.0;
+                SteamPressure -= crackLeak;
             }
 
-            SteamPressure = Math.Clamp(SteamPressure, 0.0, 200.0);
+            // Όριο βάσει του Settings
+            SteamPressure = Math.Clamp(SteamPressure, 0.0, GameSettings.Instance.MaxPressure);
 
-            // --- 3. Διαχείριση Ζημιάς Κελύφους (Casing Integrity) ---
-            // Πίεση πάνω από 180 προκαλεί συνεχή ζημιά (Over-pressurization damage)
-            if (SteamPressure > 180.0)
+            // --- 2. Διαχείριση Ζημιάς Κελύφους (Casing Integrity) ---
+
+            // Υπερπίεση (Over-pressurization damage)
+            if (SteamPressure > GameSettings.Instance.PressureDamageThreshold)
             {
                 CasingIntegrity -= (GameSettings.Instance.CasingDamagePressureMultiplier * deltaTime);
             }
-            // Ακραία θερμοκρασία προκαλεί επίσης ζημιά
-            if (coreTemp >= 850.0)
+
+            // Ακραία θερμοκρασία
+            if (coreTemp >= GameSettings.Instance.HeatDamageThreshold)
             {
                 CasingIntegrity -= (GameSettings.Instance.CasingDamageHeatMultiplier * deltaTime);
             }
 
-            // --- 4. Σύστημα Overdrive ---
+            // --- 3. Σύστημα Overdrive ---
             if (OverdriveLockout > 0.0)
             {
                 OverdriveLockout -= deltaTime;
@@ -130,6 +139,21 @@ namespace PermafrostChieftain.Simulation
             IsHullCracked = true;
             CasingIntegrity -= 25.0;
             SteamPressure = Math.Max(0.0, SteamPressure - 50.0); // Χάνει πίεση βίαια λόγω ρήγματος
+        }
+
+        public void AddSoot(double amount)
+        {
+            SootFraction = Math.Clamp(SootFraction + amount, 0.0, 1.0);
+        }
+
+        public void RemoveSoot(double amount)
+        {
+            SootFraction = Math.Clamp(SootFraction - amount, 0.0, 1.0);
+        }
+
+        public void DamageCasing(double amount)
+        {
+            CasingIntegrity = Math.Clamp(CasingIntegrity - amount, 0.0, 100.0);
         }
     }
 }

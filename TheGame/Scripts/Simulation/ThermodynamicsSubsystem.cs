@@ -12,9 +12,6 @@ namespace PermafrostChieftain.Simulation
     public class ThermodynamicsSubsystem
     {
         // Ενημερωμένη ενεργειακή πυκνότητα για θετικό ισοζύγιο
-        private const double CoalEnergyDensity = 320000.0;
-        private const double BaseThermalLoss = 27450.0;
-        private const double SpecificHeatCore = 450000.0;
         private const double AmbientTempBase = -40.0;
 
         public double CoreTemperature { get; private set; } = GameSettings.Instance.StartingCoreTemp;
@@ -27,44 +24,35 @@ namespace PermafrostChieftain.Simulation
         // Συσσωρευμένη θερμότητα από την πόλη που χάνεται σταδιακά (The Thermal Blanket)
         public double CityHeatBuffer { get; private set; } = 0.0;
 
-        public void ProcessThermalTick(double deltaTime, double coalBurnedRate, double sootLevel)
+        // Επιστρέφει την ποσότητα καπνιάς που παρήχθη αυτό το δευτερόλεπτο
+        public double ProcessThermalTick(double deltaTime, double coalBurnedPerSec)
         {
-            if (deltaTime <= 0.0) return;
-
-            // Υπολογισμός πολλαπλασιαστή καύσης (Η αιθάλη κάνει τη φωτιά να καίει πιο ζεστά και ανεξέλεγκτα)
-            double stanceMultiplier = ActiveDraftStance switch
+            if (coalBurnedPerSec <= 0)
             {
-                DraftStance.BankedEmbers => 0.4,
-                DraftStance.SteadyIdle => 1.0,
-                DraftStance.ThermalSurge => 1.8,
-                _ => 1.0
-            };
-
-            // H αιθάλη (soot) αυξάνει τη θερμοκρασία και την κατανάλωση έως και 30%
-            double sootMultiplier = 1.0 + (sootLevel * 0.3);
-
-            double energyGenerated = coalBurnedRate * CoalEnergyDensity * stanceMultiplier * sootMultiplier;
-
-            // Το ρήγμα στο κέλυφος (Hull Leak) προκαλεί τεράστια θερμική απώλεια
-            double thermalLoss = BaseThermalLoss * HullThermalLeakModifier;
-            double netEnergy = energyGenerated - thermalLoss;
-
-            CoreTemperature += (netEnergy / SpecificHeatCore) * deltaTime;
-
-            // Σκληρά όρια θερμοκρασίας πυρήνα
-            CoreTemperature = Math.Clamp(CoreTemperature, AmbientTempBase, 1200.0);
-
-            // Μείωση του θερμικού "αποθέματος" της πόλης (Thermal Blanket) στο κρύο
-            if (CityHeatBuffer > 0)
-            {
-                // Το απόθεμα μειώνεται σταθερά. 
-                double heatLossRate = 1.5; // Χάνει 1.5 βαθμούς ανά δευτερόλεπτο (προσαρμόζεται για balance)
-                CityHeatBuffer -= heatLossRate * deltaTime;
-                if (CityHeatBuffer < 0) CityHeatBuffer = 0;
+                // Φυσική απώλεια θερμοκρασίας αν η φωτιά σβήσει
+                double heatLoss = (CoreTemperature - CityTemperature) * (GameSettings.Instance.AmbientHeatLossRate * 2.5) * deltaTime;
+                CoreTemperature = Math.Max(CityTemperature, CoreTemperature - heatLoss);
+                return 0.0;
             }
 
-            // Η θερμοκρασία της πόλης βασίζεται στο περιβάλλον + το τρέχον απόθεμα
-            CityTemperature = AmbientTempBase + CityHeatBuffer;
+            // Υπολογισμός Θερμοκρασίας με τις μεταβλητές των Settings
+            double heatGain = coalBurnedPerSec * GameSettings.Instance.HeatGainPerKgCoal;
+            double heatLossWorking = (CoreTemperature - CityTemperature) * GameSettings.Instance.AmbientHeatLossRate * deltaTime;
+
+            CoreTemperature = Math.Max(CityTemperature, CoreTemperature + (heatGain * deltaTime) - heatLossWorking);
+
+            // Υπολογισμός Smoldering Penalty (Καπνιά)
+            double generatedSoot = GameSettings.Instance.BaseSootGenerationRate * deltaTime;
+
+            if (CoreTemperature < GameSettings.Instance.OptimalCoreTemp)
+            {
+                double temperatureDeficit = (GameSettings.Instance.OptimalCoreTemp - CoreTemperature) / GameSettings.Instance.OptimalCoreTemp;
+                double smolderingMultiplier = 1.0 + (temperatureDeficit * GameSettings.Instance.SmolderingSootPenalty);
+
+                generatedSoot *= smolderingMultiplier;
+            }
+
+            return generatedSoot;
         }
 
         // Καλείται όταν ο παίκτης επιλέγει να στείλει πίεση/ατμό στο City Heating κατά το Vent
