@@ -414,23 +414,16 @@ namespace PermafrostChieftain.Orchestration
         // Καλείται από το νέο UI (Shop) για να βάλει μια συνταγή στην ουρά
         public bool QueueCraftingRecipe(string recipeName)
         {
-            if (!string.IsNullOrEmpty(JobManager.ActiveCraftingRecipe))
-            {
-                DispatchLog("WARNING", "WORKSHOP", "Υπάρχει ήδη αντικείμενο στη γραμμή παραγωγής.");
-                return false;
-            }
-
             if (!GameSettings.Instance.CraftingRecipes.TryGetValue(recipeName, out var recipe)) return false;
 
-            // ΣΗΜΕΙΩΣΗ: Πλέον δεν αφαιρούμε τους πόρους ΕΔΩ. 
-            // Θα αφαιρεθούν στο τέλος της κατασκευής (στο HandleJobCompleted)
-            // για να διατηρήσουμε τη διαφορά κόστους (ρεύματος) μεταξύ μέρας και νύχτας που είχες φτιάξει.
+            // Αφαιρέσαμε τον έλεγχο (!string.IsNullOrEmpty) που υπήρχε εδώ, 
+            // για να μπορεί ο παίκτης να αλλάξει συνταγή στη μέση της κατασκευής!
 
             JobManager.SetActiveCraftingRecipe(recipeName);
             JobManager.Jobs[JobType.WorkshopMachining].SetWorkRemaining(recipe.BaseWorkTime);
-            JobManager.Jobs[JobType.ManualTinkering].SetWorkRemaining (recipe.BaseWorkTime);
+            JobManager.Jobs[JobType.ManualTinkering].SetWorkRemaining(recipe.BaseWorkTime);
 
-            DispatchLog("INFO", "WORKSHOP", $"Ξεκίνησε η κατασκευή: {recipeName}.");
+            DispatchLog("INFO", "WORKSHOP", $"Η γραμμή παραγωγής άλλαξε. Νέα κατασκευή: {recipeName}.");
             return true;
         }
         // --- 3. Τηλεμετρία και Καταγραφή ---

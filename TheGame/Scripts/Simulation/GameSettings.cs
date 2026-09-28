@@ -194,6 +194,23 @@ namespace PermafrostChieftain.Simulation
                 using var file = FileAccess.Open(SavePath, FileAccess.ModeFlags.Read);
                 string jsonString = file.GetAsText();
                 Instance = JsonSerializer.Deserialize<GameSettings>(jsonString) ?? new GameSettings();
+
+                // --- ΝΕΟΣ ΕΛΕΓΧΟΣ: Επαναφορά των Συνταγών αν το JSON είναι παλιό ή άδειο ---
+                if (Instance.CraftingRecipes == null || Instance.CraftingRecipes.Count == 0 || !Instance.CraftingRecipes.ContainsKey("Reinforced Shovels"))
+                {
+                    Instance.CraftingRecipes = new System.Collections.Generic.Dictionary<string, CraftingRecipe>
+                    {
+                        { "Reinforced Shovels", new CraftingRecipe { ScrapCost = 15.0, ElectricityCost = 0.0, BaseWorkTime = 3600.0 } },
+                        { "Capacitor Batteries", new CraftingRecipe { ScrapCost = 10.0, ElectricityCost = 25.0, BaseWorkTime = 5400.0 } },
+                        { "Pressure Fuses", new CraftingRecipe { ScrapCost = 5.0, ElectricityCost = 10.0, BaseWorkTime = 1800.0 } },
+                        { "Pneumatic Respirators", new CraftingRecipe { ScrapCost = 20.0, ElectricityCost = 5.0, BaseWorkTime = 4500.0 } },
+                        { "Wire Brushes", new CraftingRecipe { ScrapCost = 8.0, ElectricityCost = 0.0, BaseWorkTime = 2700.0 } }
+                    };
+
+                    // Αποθήκευση ώστε το αρχείο JSON στο δίσκο να ενημερωθεί με τις νέες συνταγές
+                    Instance.Save();
+                    GD.Print("Το αρχείο ρυθμίσεων ενημερώθηκε επιτυχώς με τις νέες συνταγές κατασκευής.");
+                }
             }
             catch (Exception ex)
             {

@@ -49,8 +49,21 @@ namespace PermafrostChieftain.Orchestration
         private OptionButton _microBleedTargetDropdown;
         private Button _adminPanelButton;
         private PanelContainer _adminPanelModal;
-
         private Button _blowoutButton;
+
+        // Στοιχεία UI για Κατασκευή (Shop)
+        private Button _openShopButton;
+        private PanelContainer _workshopCraftingModal;
+        private VBoxContainer _recipeListVBox;
+        private HBoxContainer _recipePrefab;
+        private Button _closeShopBtn;
+
+        // Στοιχεία UI για Εξοπλισμό (Inventory)
+        private Button _openInventoryButton;
+        private PanelContainer _inventoryModal;
+        private VBoxContainer _itemListVBox;
+        private HBoxContainer _itemPrefab;
+        private Button _closeInventoryBtn;
         public override void _Ready()
         {
             _gameOrchestrator = GetNode<GameOrchestrator>("../");
@@ -185,6 +198,22 @@ namespace PermafrostChieftain.Orchestration
             _adminPanelButton = stack.GetNode<Button>("PersistentBottomDock/DockHBox/AdminPanelButton");
             // Το modal (που τώρα έχει και το δικό του script)
             _adminPanelModal = GetNode<PanelContainer>("ModalOverlayLayer/MarginContainer/AdminPanelModal");
+
+            // (Κάτω από το _adminPanelButton = ...)
+            _openShopButton = stack.GetNode<Button>("PersistentBottomDock/DockHBox/OpenShopButton");
+            _openInventoryButton = stack.GetNode<Button>("PersistentBottomDock/DockHBox/OpenInventoryButton");
+
+            // Shop Modal
+            _workshopCraftingModal = overlay.GetNode<PanelContainer>("WorkshopCraftingModal");
+            _recipeListVBox = _workshopCraftingModal.GetNode<VBoxContainer>("MainVBox/ScrollArea/RecipeListVBox");
+            _recipePrefab = _recipeListVBox.GetNode<HBoxContainer>("RecipePrefab");
+            _closeShopBtn = _workshopCraftingModal.GetNode<Button>("MainVBox/CloseShopBtn");
+
+            // Inventory Modal
+            _inventoryModal = overlay.GetNode<PanelContainer>("InventoryModal");
+            _itemListVBox = _inventoryModal.GetNode<VBoxContainer>("MainVBox/ScrollArea/ItemListVBox");
+            _itemPrefab = _itemListVBox.GetNode<HBoxContainer>("ItemPrefab");
+            _closeInventoryBtn = _inventoryModal.GetNode<Button>("MainVBox/CloseInventoryBtn");
         }
 
         // Βοηθητική μέθοδος για την εύκολη ανάκτηση των κόμβων κάθε εργασίας
@@ -229,6 +258,115 @@ namespace PermafrostChieftain.Orchestration
             {
                 _gameOrchestrator.JobManager.ActiveMicroBleedTarget = (MicroBleedTarget)index;
             };
+
+            _openShopButton.Pressed += OpenShopModal;
+            _closeShopBtn.Pressed += () => _workshopCraftingModal.Visible = false;
+
+            _openInventoryButton.Pressed += OpenInventoryModal;
+            _closeInventoryBtn.Pressed += () => _inventoryModal.Visible = false;
+        }
+
+        private void OpenShopModal()
+        {
+            _workshopCraftingModal.Visible = true;
+
+            // Καθαρισμός παλιών εγγραφών (εκτός από το Prefab)
+            foreach (Node child in _recipeListVBox.GetChildren())
+            {
+                if (child != _recipePrefab) child.QueueFree();
+            }
+
+            // Δημιουργία λίστας με βάση τις συνταγές στα Settings
+            foreach (var kvp in GameSettings.Instance.CraftingRecipes)
+            {
+                string recipeName = kvp.Key;
+                var recipe = kvp.Value;
+
+                var newItem = (HBoxContainer)_recipePrefab.Duplicate();
+                newItem.Visible = true;
+                _recipeListVBox.AddChild(newItem);
+
+                newItem.GetNode<Label>("RecipeName").Text = recipeName;
+                newItem.GetNode<Label>("CostLabel").Text = $"Cost: {recipe.ScrapCost} Scrap | {recipe.ElectricityCost} kW | {(recipe.BaseWorkTime / 60):F0}m";
+
+                var craftBtn = newItem.GetNode<Button>("CraftBtn");
+
+                // --- ΝΕΟ: Έλεγχος & Χρωματισμός της ενεργής συνταγής ---
+                if (_gameOrchestrator.JobManager.ActiveCraftingRecipe == recipeName)
+                {
+                    newItem.Modulate = new Color(0.2f, 1f, 0.2f); // Πράσινο χρώμα για τη γραμμή που κατασκευάζεται
+                    craftBtn.Text = "CRAFTING...";
+                    craftBtn.Disabled = true; // Δεν χρειάζεται να το ξαναπατήσει
+                }
+                else
+                {
+                    newItem.Modulate = new Color(1f, 1f, 1f); // Λευκό (κανονικό) χρώμα για τα υπόλοιπα
+                    craftBtn.Text = "CRAFT";
+                    craftBtn.Disabled = false;
+                }
+
+                craftBtn.Pressed += () =>
+                {
+                    bool success = _gameOrchestrator.QueueCraftingRecipe(recipeName);
+                    if (success)
+                    {
+                        // ΣΗΜΑΝΤΙΚΟ: Δεν κλείνουμε το modal. Το ξανακαλούμε για να εφαρμόσει αμέσως τα νέα χρώματα!
+                        OpenShopModal();
+                    }
+                };
+            }
+        }
+
+        private void OpenInventoryModal()
+        {
+            _inventoryModal.Visible = true;
+            RefreshInventoryList();
+        }
+
+        // Αυτή η μέθοδος ανανεώνει τη λίστα του Inventory. 
+        // Την έχουμε ξεχωριστά ώστε να μπορούμε να την καλούμε και από το OnTelemetryUpdated αν θέλουμε live μπάρες.
+        private void RefreshInventoryList()
+        {
+            if (!_inventoryModal.Visible) return;
+
+            // Καθαρισμός παλιών εγγραφών (εκτός από το Prefab)
+            foreach (Node child in _itemListVBox.GetChildren())
+            {
+                if (child != _itemPrefab) child.QueueFree();
+            }
+
+            foreach (var item in _gameOrchestrator.Inventory.Items)
+            {
+                // Αν έσπασε, δεν το δείχνουμε (ή μπορούμε να το δείχνουμε κόκκινο)
+                if (item.Durability <= 0) continue;
+
+                var newRow = (HBoxContainer)_itemPrefab.Duplicate();
+                newRow.Visible = true;
+                _itemListVBox.AddChild(newRow);
+
+                newRow.GetNode<Label>("ItemNameLabel").Text = item.Name;
+
+                var bar = newRow.GetNode<ProgressBar>("DurabilityBar");
+                bar.Value = item.Durability;
+
+                var equipBtn = newRow.GetNode<Button>("EquipBtn");
+                equipBtn.Text = item.IsEquipped ? "UNEQUIP" : "EQUIP";
+                equipBtn.Modulate = item.IsEquipped ? new Color(0.2f, 1f, 0.2f) : new Color(1f, 1f, 1f);
+
+                equipBtn.Pressed += () =>
+                {
+                    if (item.IsEquipped)
+                    {
+                        _gameOrchestrator.Inventory.UnequipItem(item.Name);
+                    }
+                    else
+                    {
+                        _gameOrchestrator.Inventory.EquipItem(item.Name);
+                    }
+                    // Ανανέωση του UI αμέσως μετά το πάτημα
+                    RefreshInventoryList();
+                };
+            }
         }
 
         private void OnConfirmVentRouting()
@@ -373,6 +511,7 @@ namespace PermafrostChieftain.Orchestration
                     }
                 }
             }
+            RefreshInventoryList();
         }
 
         private void OnPhaseTransitionTriggered(int newPhase)

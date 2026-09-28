@@ -1230,6 +1230,14 @@ metadata/_tab_index = 7
 [node name="ContentVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer/Tab_Vent" unique_id=599322534]
 layout_mode = 2
 
+[node name="Tab_Equipment" type="ScrollContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer" unique_id=750043284]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 8
+
+[node name="ContentVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox/AdminTabContainer/Tab_Equipment" unique_id=865648365]
+layout_mode = 2
+
 [node name="SaveSettingsButton" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/MainVBox" unique_id=1082500903]
 layout_mode = 2
 theme_override_font_sizes/font_size = 25
@@ -1245,9 +1253,88 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
 
 [node name="PropertyValueSpinBox" type="SpinBox" parent="MainLayout/ModalOverlayLayer/MarginContainer/AdminPanelModal/AdminFieldPrefab" unique_id=915619748]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 100000000.0
 step = 0.1
 allow_greater = true
 allow_lesser = true
+
+[node name="WorkshopCraftingModal" type="PanelContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer" unique_id=1307691508]
+visible = false
+custom_minimum_size = Vector2(400, 500)
+layout_mode = 2
+
+[node name="MainVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal" unique_id=294906930]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal/MainVBox" unique_id=1240709575]
+layout_mode = 2
+text = "WORKSHOP MACHINING - SELECT BLUEPRINT"
+
+[node name="ScrollArea" type="ScrollContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal/MainVBox" unique_id=1599493375]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RecipeListVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal/MainVBox/ScrollArea" unique_id=57233123]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RecipePrefab" type="HBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal/MainVBox/ScrollArea/RecipeListVBox" unique_id=1693630152]
+layout_mode = 2
+
+[node name="RecipeName" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal/MainVBox/ScrollArea/RecipeListVBox/RecipePrefab" unique_id=1730893859]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="CostLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal/MainVBox/ScrollArea/RecipeListVBox/RecipePrefab" unique_id=2126436605]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="CraftBtn" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal/MainVBox/ScrollArea/RecipeListVBox/RecipePrefab" unique_id=777131169]
+layout_mode = 2
+text = "CRAFT"
+
+[node name="CloseShopBtn" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal/MainVBox" unique_id=1329122503]
+layout_mode = 2
+text = "CLOSE"
+
+[node name="InventoryModal" type="PanelContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer" unique_id=1139245971]
+visible = false
+layout_mode = 2
+
+[node name="MainVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal" unique_id=608254732]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal/MainVBox" unique_id=191211354]
+layout_mode = 2
+text = "EQUIPMENT & INVENTORY"
+
+[node name="ScrollArea" type="ScrollContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal/MainVBox" unique_id=280827942]
+custom_minimum_size = Vector2(0, 300)
+layout_mode = 2
+
+[node name="ItemListVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal/MainVBox/ScrollArea" unique_id=1102288737]
+layout_mode = 2
+
+[node name="ItemPrefab" type="HBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal/MainVBox/ScrollArea/ItemListVBox" unique_id=1071125740]
+visible = false
+layout_mode = 2
+
+[node name="ItemNameLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal/MainVBox/ScrollArea/ItemListVBox/ItemPrefab" unique_id=1938163908]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="DurabilityBar" type="ProgressBar" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal/MainVBox/ScrollArea/ItemListVBox/ItemPrefab" unique_id=624653403]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+
+[node name="EquipBtn" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal/MainVBox/ScrollArea/ItemListVBox/ItemPrefab" unique_id=1931793720]
+layout_mode = 2
+text = "EQUIP"
+
+[node name="CloseInventoryBtn" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal/MainVBox" unique_id=1123569548]
+layout_mode = 2
+text = "CLOSE"
