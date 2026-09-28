@@ -500,14 +500,47 @@ namespace PermafrostChieftain.Orchestration
                         double effectiveRate = Math.Pow(jobData.AssignedWorkers, 0.8);
                         double realSecondsLeft = jobData.WorkRemaining / effectiveRate;
 
-                        // 5. Βελτιστοποιημένη μορφοποίηση χρόνου χωρίς δημιουργία περιττών strings
+                        // 5. Βελτιστοποιημένη μορφοποίηση χρόνου
                         time = TimeSpan.FromSeconds(realSecondsLeft);
                         string format = time.TotalHours >= 1 ? @"hh\:mm\:ss" : @"mm\:ss";
-                        card.JobNameLabel.Text = $"{card.BaseName} - {time.ToString(format)}";
+
+                        // Αν είναι μηχανουργείο, δείχνουμε ΚΑΙ το όνομα της συνταγής δίπλα στο όνομα της δουλειάς
+                        if (jobData.Type == JobType.WorkshopMachining || jobData.Type == JobType.ManualTinkering)
+                        {
+                            string recipeName = _gameOrchestrator.JobManager.ActiveCraftingRecipe;
+                            if (!string.IsNullOrEmpty(recipeName))
+                            {
+                                card.JobNameLabel.Text = $"{card.BaseName} [{recipeName}] - {time.ToString(format)}";
+                            }
+                            else
+                            {
+                                card.JobNameLabel.Text = $"{card.BaseName} - [IDLE]";
+                            }
+                        }
+                        else
+                        {
+                            card.JobNameLabel.Text = $"{card.BaseName} - {time.ToString(format)}";
+                        }
                     }
                     else
                     {
-                        card.JobNameLabel.Text = $"{card.BaseName} - [ΠΑΥΣΗ]";
+                        // Αν δεν υπάρχουν εργάτες
+                        if (jobData.Type == JobType.WorkshopMachining || jobData.Type == JobType.ManualTinkering)
+                        {
+                            string recipeName = _gameOrchestrator.JobManager.ActiveCraftingRecipe;
+                            if (!string.IsNullOrEmpty(recipeName))
+                            {
+                                card.JobNameLabel.Text = $"{card.BaseName} [{recipeName}] - [ΠΑΥΣΗ/ΑΝΑΜΟΝΗ ΠΡΟΣΩΠΙΚΟΥ]";
+                            }
+                            else
+                            {
+                                card.JobNameLabel.Text = $"{card.BaseName} - [IDLE]";
+                            }
+                        }
+                        else
+                        {
+                            card.JobNameLabel.Text = $"{card.BaseName} - [ΠΑΥΣΗ]";
+                        }
                     }
                 }
             }
