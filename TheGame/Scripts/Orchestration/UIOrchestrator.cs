@@ -64,6 +64,14 @@ namespace PermafrostChieftain.Orchestration
         private VBoxContainer _itemListVBox;
         private HBoxContainer _itemPrefab;
         private Button _closeInventoryBtn;
+
+        // Στοιχεία UI για Logs & Reports
+        private Button _openLogsButton;
+        private PanelContainer _logsReportsModal;
+        private Button _closeLogsBtn;
+        private VBoxContainer _logsVBox;
+        private VBoxContainer _reportListVBox;
+        private RichTextLabel _reportContentText;
         public override void _Ready()
         {
             _gameOrchestrator = GetNode<GameOrchestrator>("../");
@@ -93,11 +101,14 @@ namespace PermafrostChieftain.Orchestration
             {
                 CyclePhase newPhase = (CyclePhase)phaseIndex;
 
-                // Το κουμπί ορατότητα και κατάσταση ενεργοποίησης ελέγχεται κυρίως από τη φάση
                 if (_ventActuatorButton != null)
                 {
-                    _ventActuatorButton.Visible = (newPhase == CyclePhase.VentPending || newPhase == CyclePhase.VentRouting || newPhase == CyclePhase.DayActive);
-                    // Η ενεργοποίηση του κουμπιού (να πατιέται) ρυθμίζεται ήδη στην OnTelemetryUpdated
+                    // ΝΕΟ: Είναι ΠΑΝΤΑ ορατό αν η γεννήτρια είναι κλειστή. 
+                    // Αν είναι ανοιχτή, ακολουθεί τον κανόνα των φάσεων.
+                    _ventActuatorButton.Visible = (!_gameOrchestrator.IsGeneratorActive) ||
+                                                  (newPhase == CyclePhase.VentPending ||
+                                                   newPhase == CyclePhase.VentRouting ||
+                                                   newPhase == CyclePhase.DayActive);
                 }
             };
 
@@ -113,6 +124,10 @@ namespace PermafrostChieftain.Orchestration
             if (_gameOrchestrator == null) return;
             _gameOrchestrator.TelemetryUpdated += OnTelemetryUpdated;
             _gameOrchestrator.PhaseTransitionTriggered += OnPhaseTransitionTriggered;
+
+            //Σύνδεση με το σύστημα καταγραφής
+            _gameOrchestrator.LogEventDispatched += OnLogDispatched;
+            _gameOrchestrator.ShiftReportGenerated += OnShiftReportGenerated;
         }
 
         private void BindUiNodes()
@@ -214,6 +229,18 @@ namespace PermafrostChieftain.Orchestration
             _itemListVBox = _inventoryModal.GetNode<VBoxContainer>("MainVBox/ScrollArea/ItemListVBox");
             _itemPrefab = _itemListVBox.GetNode<HBoxContainer>("ItemPrefab");
             _closeInventoryBtn = _inventoryModal.GetNode<Button>("MainVBox/CloseInventoryBtn");
+
+            _openLogsButton = stack.GetNode<Button>("PersistentBottomDock/DockHBox/OpenLogsButton");
+
+            // Logs & Reports Modal
+            _logsReportsModal = overlay.GetNode<PanelContainer>("LogsReportsModal");
+            _closeLogsBtn = _logsReportsModal.GetNode<Button>("MainVBox/HeaderHBox/CloseLogsBtn");
+            _logsVBox = _logsReportsModal.GetNode<VBoxContainer>("MainVBox/TabContainer/Logs/LogsVBox");
+            _reportListVBox = _logsReportsModal.GetNode<VBoxContainer>("MainVBox/TabContainer/Reports/ReportListScroll/ReportListVBox");
+            _reportContentText = _logsReportsModal.GetNode<RichTextLabel>("MainVBox/TabContainer/Reports/ReportContentText");
+
+            // Ενεργοποίηση BBCode για το RichTextLabel ώστε να υποστηρίζει έντονα γράμματα [b]
+            _reportContentText.BbcodeEnabled = true;
         }
 
         // Βοηθητική μέθοδος για την εύκολη ανάκτηση των κόμβων κάθε εργασίας
@@ -244,7 +271,7 @@ namespace PermafrostChieftain.Orchestration
         private void BindInputEvents()
         {
             // Το κουμπί εκτόνωσης πλέον ανοίγει το Modal (αν ο χρόνος έχει μηδενιστεί)
-            _ventActuatorButton.Pressed += () => _gameOrchestrator.Clock.TriggerVentModal();
+            _ventActuatorButton.Pressed += OnMainCenterButtonPressed;
 
             // Σύνδεση των sliders για ανανέωση των κειμένων κατά την κίνηση
             _cityVentSlider.ValueChanged += _ => UpdateVentRoutingValues();
@@ -264,8 +291,23 @@ namespace PermafrostChieftain.Orchestration
 
             _openInventoryButton.Pressed += OpenInventoryModal;
             _closeInventoryBtn.Pressed += () => _inventoryModal.Visible = false;
-        }
 
+            _openLogsButton.Pressed += () => _logsReportsModal.Visible = true;
+            _closeLogsBtn.Pressed += () => _logsReportsModal.Visible = false;
+        }
+        private void OnMainCenterButtonPressed()
+        {
+            if (!_gameOrchestrator.IsGeneratorActive)
+            {
+                // Αν η γεννήτρια είναι κλειστή, το κουμπί κάνει Ανάφλεξη
+                _gameOrchestrator.StartBoilerSequence();
+            }
+            else
+            {
+                // Αν δουλεύει, λειτουργεί ως κουμπί Εκτόνωσης
+                _gameOrchestrator.Clock.TriggerVentModal();
+            }
+        }
         private void OpenShopModal()
         {
             _workshopCraftingModal.Visible = true;
@@ -457,16 +499,36 @@ namespace PermafrostChieftain.Orchestration
             _shiftCountdownLabel.Text = $"NEXT VENT: {b.SecondsUntilNextVent:F0}s";
 
             // Το κουμπί ενεργοποιείται μόνο στη φάση VentPending
-            _ventActuatorButton.Disabled = b.CurrentPhase != CyclePhase.VentPending;
-            if (b.CurrentPhase == CyclePhase.VentPending)
+            //_ventActuatorButton.Disabled = b.CurrentPhase != CyclePhase.VentPending;
+            // --- ΔΥΝΑΜΙΚΟ ΚΕΝΤΡΙΚΟ ΚΟΥΜΠΙ (ΑΝΑΦΛΕΞΗ Ή ΕΚΤΟΝΩΣΗ) ---
+            if (!_gameOrchestrator.IsGeneratorActive)
             {
-                _ventActuatorButton.Text = "ACTUATE DECOMPRESSION LEVER [READY]";
-                _ventActuatorButton.Modulate = new Color(0.2f, 1f, 0.2f); // Πράσινο για να τραβήξει την προσοχή
+                // Εμφάνιση κόστους ανάφλεξης
+                if (_ventActuatorButton != null)
+                {
+                    _ventActuatorButton.Visible = true;
+                    _ventActuatorButton.Text = $"IGNITE GENERATOR (-{GameSettings.Instance.IgnitionCoalCost} COAL)";
+                    _ventActuatorButton.Disabled = _gameOrchestrator.Logistics.CoalStockpile < GameSettings.Instance.IgnitionCoalCost;
+                    _ventActuatorButton.Modulate = new Color(1f, 0.5f, 0.2f);
+                }
             }
             else
             {
-                _ventActuatorButton.Text = $"ACTUATE DECOMPRESSION LEVER [LOCKED > {b.SecondsUntilNextVent:F0}s]";
-                _ventActuatorButton.Modulate = new Color(1f, 1f, 1f);
+                if (_ventActuatorButton != null)
+                {
+                    _ventActuatorButton.Modulate = new Color(1f, 1f, 1f);
+
+                    if (_gameOrchestrator.LatestBoilerTelemetry.CurrentPhase == CyclePhase.VentPending)
+                    {
+                        _ventActuatorButton.Text = "ACTUATE DECOMPRESSION LEVER [READY]";
+                        _ventActuatorButton.Disabled = false;
+                    }
+                    else
+                    {
+                        _ventActuatorButton.Text = $"ACTUATE DECOMPRESSION LEVER [LOCKED > {_gameOrchestrator.LatestBoilerTelemetry.SecondsUntilNextVent:F0}s]";
+                        _ventActuatorButton.Disabled = true;
+                    }
+                }
             }
 
             // --- Ενημέρωση Καρτών Εργασιών (Job Cards) ---
@@ -584,6 +646,46 @@ namespace PermafrostChieftain.Orchestration
             {
                 _ventRoutingModal.Visible = false;
             }
+        }
+
+        private void OnLogDispatched(double timeInSeconds, string severity, string category, string message)
+        {
+            // Μετατροπή του χρόνου σε HH:MM
+            TimeSpan time = TimeSpan.FromSeconds(timeInSeconds);
+            string formattedTime = time.ToString(@"hh\:mm");
+
+            // Δημιουργία ενός νέου Label για το Log
+            Label logLabel = new Label();
+            logLabel.Text = $"[{formattedTime}] [{category}] {message}";
+            logLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+
+            // Χρωματισμός βάσει σοβαρότητας (Severity)
+            if (severity == "CRITICAL") logLabel.Modulate = new Color(1, 0.2f, 0.2f);
+            else if (severity == "WARNING") logLabel.Modulate = new Color(1, 1, 0.2f);
+            else logLabel.Modulate = new Color(0.8f, 0.8f, 0.8f);
+
+            _logsVBox.AddChild(logLabel);
+            _logsVBox.MoveChild(logLabel, 0); // Βάζει το νεότερο log στην κορυφή της λίστας
+        }
+
+        private void OnShiftReportGenerated(string title, string content)
+        {
+            // Δημιουργία ενός νέου κουμπιού στη λίστα των Reports
+            Button reportBtn = new Button();
+            reportBtn.Text = title;
+            reportBtn.CustomMinimumSize = new Vector2(0, 40);
+            
+            // Όταν πατιέται το κουμπί, το κείμενο δεξιά ανανεώνεται με το περιεχόμενο της αναφοράς
+            reportBtn.Pressed += () => 
+            {
+                _reportContentText.Text = content;
+            };
+
+            _reportListVBox.AddChild(reportBtn);
+            _reportListVBox.MoveChild(reportBtn, 0); // Βάζει το νεότερο report στην κορυφή
+            
+            // Προαιρετικά: Αυτόματη προβολή της νεότερης αναφοράς
+            _reportContentText.Text = content;
         }
     }
 }

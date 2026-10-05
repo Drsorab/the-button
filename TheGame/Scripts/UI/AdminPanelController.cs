@@ -17,7 +17,7 @@ namespace PermafrostChieftain.Orchestration
 
         public override void _Ready()
         {
-            _gameOrchestrator = GetTree().Root.FindChild("*GameOrchestrator*", true, false) as GameOrchestrator;
+            _gameOrchestrator = GetTree().Root.GetNode<GameOrchestrator>("TheGame");
             _closeButton = GetNode<Button>("MainVBox/HeaderHBox/CloseAdminButton");
             _saveButton = GetNode<Button>("MainVBox/SaveSettingsButton");
             _prefab = GetNode<HBoxContainer>("AdminFieldPrefab");
@@ -55,7 +55,9 @@ namespace PermafrostChieftain.Orchestration
 
             // Γέμισμα του Tab 2: Core
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Core/ContentVBox", new Dictionary<string, string[]> {
-                { "STARTING CONDITIONS", new[] { "StartingCoreTemp", "StartingPressure" } },
+                { "STARTING CONDITIONS", new[] { "StartingCoreTemp", "StartingPressure", "IgnitionCoalCost",
+                        "ShutdownTempThreshold",
+                        "InactiveCoolingRate" , "AmbientTemperature" } },
                 { "THERMODYNAMICS", new[] { "OptimalCoreTemp", "BoilingPointThreshold", "HeatGainPerKgCoal", "AmbientHeatLossRate" } },
                 { "PRESSURE DYNAMICS", new[] { "MaxPressure", "BasePressureGenerationRate", "NightBleedRate" } }
             });
@@ -63,7 +65,7 @@ namespace PermafrostChieftain.Orchestration
             // Γέμισμα του Tab 3: Hull
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Hull/ContentVBox", new Dictionary<string, string[]> {
                 { "DAMAGE THRESHOLDS", new[] { "PressureDamageThreshold", "HeatDamageThreshold" } },
-                { "DAMAGE RATES", new[] { "CasingDamageHeatMultiplier", "CasingDamagePressureMultiplier", "ViolentDischargeCasingDamage", "HullCrackedLeakRate" } }
+                { "DAMAGE RATES", new[] { "CasingDamageHeatMultiplier", "CasingDamagePressureMultiplier", "ViolentDischargeCasingDamage", "HullCrackedLeakRate", "StartingHullIntegrity" } }
             });
 
             // Γέμισμα του Tab 4: Soot

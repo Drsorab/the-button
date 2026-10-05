@@ -10,11 +10,6 @@ namespace PermafrostChieftain.Simulation
 
         public int AvailableFuses { get; set; } = 3;
 
-        // Φθορά Overdrive
-        public bool IsOverdriveActive { get; set; } = false;
-        public double OverdriveStress { get; private set; } = 0.0;
-        public double OverdriveLockout { get; private set; } = 0.0;
-
         // Κατάσταση βλάβης αν δεν πατηθεί το κουμπί και δεν υπάρχουν ασφάλειες
         public bool IsHullCracked { get; private set; } = false;
 
@@ -22,94 +17,64 @@ namespace PermafrostChieftain.Simulation
         {
             if (deltaTime <= 0.0) return;
 
-            // --- 1. Διαχείριση Πίεσης (Pressure) ---
-            if (currentPhase == CyclePhase.DayActive)
+            // Η αιθάλη (soot) δρα ως μόνωση
+            double insulationFactor = 1.0 - (SootFraction * GameSettings.Instance.SootInsulationMultiplier);
+            double effectiveWaterTemp = coreTemp * Math.Max(0.1, insulationFactor);
+
+            double heatDelta = effectiveWaterTemp - GameSettings.Instance.BoilingPointThreshold;
+            double thermodynamicPressureRate = 0.0;
+
+            if (heatDelta > 0)
             {
-                double netPressureRate = 0.0;
+                // NORMALIZED HEAT RATIO:
+                // Υπολογίζει πόσο κοντά είμαστε στην ιδανική θερμοκρασία.
+                // Στους 750°C (Optimal) το ratio είναι 1.0, άρα παράγουμε ακριβώς το BasePressure (0.015).
+                // Στους 350°C το ratio είναι 0.2, άρα παράγουμε το 20% της μέγιστης πίεσης.
+                double optimalDelta = GameSettings.Instance.OptimalCoreTemp - GameSettings.Instance.BoilingPointThreshold;
+                double heatRatio = heatDelta / optimalDelta;
 
-                // Το νερό δεν "νιώθει" όλη τη θερμοκρασία γιατί η καπνιά δρα ως μόνωση
-                double insulationFactor = 1.0 - (SootFraction * GameSettings.Instance.SootInsulationMultiplier);
-                double effectiveWaterTemp = coreTemp * Math.Max(0.1, insulationFactor); // Δεν πέφτει ποτέ κάτω από το 10% της θερμότητας
+                double baseBoilRate = heatRatio * GameSettings.Instance.BasePressureGenerationRate;
 
-                if (effectiveWaterTemp >= GameSettings.Instance.BoilingPointThreshold)
-                {
-                    double basePressureRate = (effectiveWaterTemp / GameSettings.Instance.OptimalCoreTemp) * GameSettings.Instance.BasePressureGenerationRate;
-                    double crackLeak = IsHullCracked ? GameSettings.Instance.HullCrackedLeakRate : 0.0;
+                // Το soot φράζει τις βαλβίδες αυξάνοντας την πίεση
+                double clogMultiplier = 1.0 + (SootFraction * (GameSettings.Instance.MaxSootPressureMultiplier - 1.0));
 
-                    netPressureRate = basePressureRate - crackLeak;
-
-                    if (IsOverdriveActive) netPressureRate *= 2.0;
-                }
-                else
-                {
-                    // Αν δεν βράζει, η πίεση πέφτει μόνο αν υπάρχει ρήγμα στο κέλυφος
-                    double crackLeak = IsHullCracked ? GameSettings.Instance.HullCrackedLeakRate : 0.0;
-                    netPressureRate = -crackLeak;
-                }
-
-                SteamPressure += netPressureRate * deltaTime;
-            }
-            else if (currentPhase == CyclePhase.NightBleed)
-            {
-                // Αργή αποσυμπίεση κατά τη διάρκεια της νύχτας
-                double nightLeak = GameSettings.Instance.NightBleedRate * deltaTime;
-                double crackLeak = IsHullCracked ? GameSettings.Instance.HullCrackedLeakRate : 0.0;
-
-                SteamPressure -= (nightLeak + crackLeak);
+                thermodynamicPressureRate = baseBoilRate * clogMultiplier;
             }
             else
             {
-                // Σε ενδιάμεσες φάσεις (π.χ. Twilight), χάνουμε πίεση μόνο αν υπάρχει ρήγμα
-                double crackLeak = IsHullCracked ? GameSettings.Instance.HullCrackedLeakRate : 0.0;
-                SteamPressure -= crackLeak;
+                // Ο πυρήνας είναι πιο κρύος από το βρασμό. Αρχίζει η συμπύκνωση ατμού.
+                thermodynamicPressureRate = -(Math.Abs(heatDelta) * GameSettings.Instance.CondensationRateCoefficient);
             }
 
-            // Όριο βάσει του Settings
+            double totalBleedRate = GameSettings.Instance.NaturalHullBleedRate;
+
+            if (IsHullCracked)
+            {
+                totalBleedRate += GameSettings.Instance.HullCrackedLeakRate;
+            }
+
+            if (currentPhase == CyclePhase.NightBleed)
+            {
+                totalBleedRate += GameSettings.Instance.NightBleedRate;
+            }
+
+            // Εφαρμογή
+            SteamPressure += (thermodynamicPressureRate - totalBleedRate) * deltaTime;
             SteamPressure = Math.Clamp(SteamPressure, 0.0, GameSettings.Instance.MaxPressure);
 
-            // --- 2. Διαχείριση Ζημιάς Κελύφους (Casing Integrity) ---
-
-            // Υπερπίεση (Over-pressurization damage)
+            // --- 3. Διαχείριση Ζημιάς Κελύφους ---
             if (SteamPressure > GameSettings.Instance.PressureDamageThreshold)
             {
                 CasingIntegrity -= (GameSettings.Instance.CasingDamagePressureMultiplier * deltaTime);
             }
 
-            // Ακραία θερμοκρασία
             if (coreTemp >= GameSettings.Instance.HeatDamageThreshold)
             {
                 CasingIntegrity -= (GameSettings.Instance.CasingDamageHeatMultiplier * deltaTime);
             }
 
-            // --- 3. Σύστημα Overdrive ---
-            if (OverdriveLockout > 0.0)
-            {
-                OverdriveLockout -= deltaTime;
-                IsOverdriveActive = false;
-            }
-            else if (IsOverdriveActive)
-            {
-                OverdriveStress += (10.0 / 60.0) * deltaTime;
-                if (OverdriveStress >= 100.0)
-                {
-                    CasingIntegrity -= 15.0; // Τεράστια ζημιά
-                    IsOverdriveActive = false;
-                    OverdriveStress = 0.0;
-                    OverdriveLockout = 28800.0; // 8 ώρες κλείδωμα
-                }
-            }
-            else
-            {
-                if (OverdriveStress > 0.0)
-                {
-                    OverdriveStress -= (2.0 / 60.0) * deltaTime; // Αργή ψύξη
-                }
-            }
-
             CasingIntegrity = Math.Clamp(CasingIntegrity, 0.0, 100.0);
-            OverdriveStress = Math.Clamp(OverdriveStress, 0.0, 100.0);
         }
-
         // Καλείται όταν ο παίκτης επιλέγει να μειώσει χειροκίνητα την αιθάλη (μέσω Flue Scour Job)
         public void CleanSoot(double amount)
         {
@@ -144,6 +109,11 @@ namespace PermafrostChieftain.Simulation
         public void AddSoot(double amount)
         {
             SootFraction = Math.Clamp(SootFraction + amount, 0.0, 1.0);
+        }
+
+        public void SetCasingStress(double amount)
+        {
+            CasingIntegrity = amount;
         }
 
         public void RemoveSoot(double amount)

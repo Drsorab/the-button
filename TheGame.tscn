@@ -838,6 +838,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "WORKSHOP & GEAR"
 
+[node name="OpenLogsButton" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBottomDock/DockHBox" unique_id=1791958224]
+layout_mode = 2
+text = "LOGS & REPORTS"
+
 [node name="ModalOverlayLayer" type="Control" parent="MainLayout" unique_id=1500728317]
 layout_mode = 1
 anchors_preset = 15
@@ -1338,3 +1342,51 @@ text = "EQUIP"
 [node name="CloseInventoryBtn" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal/MainVBox" unique_id=1123569548]
 layout_mode = 2
 text = "CLOSE"
+
+[node name="LogsReportsModal" type="PanelContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer" unique_id=1252526967]
+visible = false
+layout_mode = 2
+
+[node name="MainVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal" unique_id=1834259400]
+layout_mode = 2
+
+[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox" unique_id=1017541404]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox/HeaderHBox" unique_id=2132001531]
+layout_mode = 2
+text = "SYSTEM TERMINAL"
+
+[node name="CloseLogsBtn" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox/HeaderHBox" unique_id=953999702]
+layout_mode = 2
+text = "CLOSE"
+
+[node name="TabContainer" type="TabContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox" unique_id=1447408005]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Logs" type="ScrollContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox/TabContainer" unique_id=918785274]
+custom_minimum_size = Vector2(0, 400)
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="LogsVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox/TabContainer/Logs" unique_id=388201718]
+layout_mode = 2
+
+[node name="Reports" type="HBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox/TabContainer" unique_id=1178024091]
+visible = false
+custom_minimum_size = Vector2(0, 400)
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="ReportListScroll" type="ScrollContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox/TabContainer/Reports" unique_id=1362437729]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ReportListVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox/TabContainer/Reports/ReportListScroll" unique_id=610032280]
+layout_mode = 2
+
+[node name="ReportContentText" type="RichTextLabel" parent="MainLayout/ModalOverlayLayer/MarginContainer/LogsReportsModal/MainVBox/TabContainer/Reports" unique_id=1984937779]
+layout_mode = 2
+size_flags_horizontal = 3

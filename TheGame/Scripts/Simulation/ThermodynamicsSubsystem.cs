@@ -11,11 +11,9 @@ namespace PermafrostChieftain.Simulation
 
     public class ThermodynamicsSubsystem
     {
-        // Ενημερωμένη ενεργειακή πυκνότητα για θετικό ισοζύγιο
-        private const double AmbientTempBase = -40.0;
 
         public double CoreTemperature { get; private set; } = GameSettings.Instance.StartingCoreTemp;
-        public double CityTemperature { get; private set; } = -40.0;
+        public double CityTemperature { get; private set; } = GameSettings.Instance.AmbientTemperature;
         public DraftStance ActiveDraftStance { get; set; } = DraftStance.SteadyIdle;
 
         // Συντελεστής που μειώνει την απόδοση αν το κέλυφος ραγίσει λόγω πίεσης
@@ -24,6 +22,13 @@ namespace PermafrostChieftain.Simulation
         // Συσσωρευμένη θερμότητα από την πόλη που χάνεται σταδιακά (The Thermal Blanket)
         public double CityHeatBuffer { get; private set; } = 0.0;
 
+        public double CurrentAmbientTemperature { get; set; }
+
+        public ThermodynamicsSubsystem()
+        {
+            // Αρχικοποίηση από τα settings όταν ξεκινάει το σύστημα
+            CurrentAmbientTemperature = GameSettings.Instance.AmbientTemperature;
+        }
         // Επιστρέφει την ποσότητα καπνιάς που παρήχθη αυτό το δευτερόλεπτο
         public double ProcessThermalTick(double deltaTime, double coalBurnedPerSec)
         {
@@ -54,7 +59,17 @@ namespace PermafrostChieftain.Simulation
 
             return generatedSoot;
         }
+        // Θέτει την ακριβή θερμοκρασία του πυρήνα με όριο την ελάχιστη εξωτερική
+        public void SetCoreTemperature(double temp)
+        {
+            CoreTemperature = Math.Max(CurrentAmbientTemperature, temp);
+        }
 
+        // Θέτει την ακριβή θερμοκρασία της πόλης με όριο την *τρέχουσα* εξωτερική
+        public void SetCityTemperature(double temp)
+        {
+            CityTemperature = Math.Max(CurrentAmbientTemperature, temp);
+        }
         // Καλείται όταν ο παίκτης επιλέγει να στείλει πίεση/ατμό στο City Heating κατά το Vent
         public void AddCityHeatBuffer(double addedHeat)
         {
@@ -64,7 +79,7 @@ namespace PermafrostChieftain.Simulation
         // Άμεση αλλαγή θερμοκρασίας (για emergency events)
         public void ApplyDirectThermalDelta(double coreDelta, double cityDelta)
         {
-            CoreTemperature = Math.Clamp(CoreTemperature + coreDelta, AmbientTempBase, 1200.0);
+            CoreTemperature = Math.Clamp(CoreTemperature + coreDelta, CurrentAmbientTemperature, 1200.0);
             CityHeatBuffer += cityDelta;
         }
     }

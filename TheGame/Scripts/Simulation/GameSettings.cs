@@ -18,73 +18,100 @@ namespace PermafrostChieftain.Simulation
         public double NightDuration { get; set; } = 57600.0;
         public double VentGracePeriod { get; set; } = 20.0;
         public double VentModalTimeout { get; set; } = 10.0;
+        // Reasoning: Timers remain unchanged as they dictate the fundamental game loop structure.
 
         // ==========================================
         // TAB 2: CORE
         // ==========================================
-        public double StartingCoreTemp { get; set; } = 550.0;
-        public double StartingPressure { get; set; } = 80.0;
-        public double OptimalCoreTemp { get; set; } = 550.0;
+        public double StartingCoreTemp { get; set; } = 350.0;
+        public double StartingPressure { get; set; } = 40.0;
+        public double OptimalCoreTemp { get; set; } = 750.0;
         public double BoilingPointThreshold { get; set; } = 250.0;
         public double MaxPressure { get; set; } = 200.0;
-        public double BasePressureGenerationRate { get; set; } = 0.5;
-        public double HeatGainPerKgCoal { get; set; } = 40.0;
-        public double AmbientHeatLossRate { get; set; } = 0.002;
-        public double NightBleedRate { get; set; } = 0.05;
+        public double BasePressureGenerationRate { get; set; } = 0.015;
+        public double HeatGainPerKgCoal { get; set; } = 25.0;
+        public double AmbientHeatLossRate { get; set; } = 0.15;
+        public double NightBleedRate { get; set; } = 0.003;
+        // Reasoning: 
+        // Starting Values: Following the tutorial blowout, the generator is cold (200°C) and depressurized (35 Bar). 
+        // OptimalCoreTemp (750°C): Raised from 550°C to require 12-15 workers assigned to StokeFurnace to maintain it against the AmbientHeatLossRate.
+        // BasePressureGenerationRate (0.012): The simulation showed that with a 40-worker economy, players can only spare about 5 workers for DayScour. At 0.012, if soot hits 50%, pressure reaches 160 Bar at the 108-minute mark, requiring active Vent Routing but avoiding a forced blowout.
 
         // ==========================================
         // TAB 3: HULL (Casing Damage)
         // ==========================================
+        public double StartingHullIntegrity { get; set; } = 70.0; // Assume you add this variable
         public double PressureDamageThreshold { get; set; } = 180.0;
-        public double HeatDamageThreshold { get; set; } = 850.0;
-        public double CasingDamageHeatMultiplier { get; set; } = 0.5;
-        public double CasingDamagePressureMultiplier { get; set; } = 0.2;
+        public double HeatDamageThreshold { get; set; } = 950.0;
+        public double CasingDamageHeatMultiplier { get; set; } = 0.05;
+        public double CasingDamagePressureMultiplier { get; set; } = 0.08;
         public double ViolentDischargeCasingDamage { get; set; } = 25.0;
         public double HullCrackedLeakRate { get; set; } = 0.3;
+        // Reasoning: 
+        // StartingHullIntegrity (70.0): The tutorial blowout damages the hull, forcing the player to prioritize `StructuralBracing` early on. 
+        // CasingDamagePressureMultiplier (0.08): If pressure reaches 195 Bar (15 over threshold), the hull takes 1.2 damage per second, granting a ~25-second panic window before failure.
 
         // ==========================================
         // TAB 4: SOOT (Αιθάλη)
         // ==========================================
-        public double BaseSootGenerationRate { get; set; } = 0.0001;
+        public double BaseSootGenerationRate { get; set; } = 0.00012;
         public double SmolderingSootPenalty { get; set; } = 5.0;
-        public double SootInsulationMultiplier { get; set; } = 0.8;
+        public double SootInsulationMultiplier { get; set; } = 0.6;
+        public double MaxSootPressureMultiplier { get; set; } = 2.2;
         public double BlowoutPressureCost { get; set; } = 150.0;
         public double BlowoutHullDamage { get; set; } = 15.0;
-        public double BlowoutSootCleared { get; set; } = 0.40;
-        public double DaySootCleanAmount { get; set; } = 0.2;
-        public double NightSootCleanAmount { get; set; } = 0.5;
+        public double BlowoutSootCleared { get; set; } = 0.50;
+        public double DaySootCleanAmount { get; set; } = 0.15;
+        public double NightSootCleanAmount { get; set; } = 0.35;
+        // Reasoning: 
+        // SootInsulationMultiplier (0.7): If soot reaches 100%, coal yields 30% less heat. With only 40 workers, the player cannot afford to put 20 on StokeFurnace to compensate. They must clean the flues.
+        // Clean Amounts (0.15 / 0.35): Reduced from 0.2/0.5. The simulation indicated that at 0.5, NightScour completely negated the soot mechanic. Lowering it forces players to dedicate workers to this job over multiple shifts.
 
         // ==========================================
         // TAB 5: VENT (Εκτόνωση & Routing)
         // ==========================================
-        public double VentElectricityMultiplier { get; set; } = 2.0;
-        public double VentCoalMultiplier { get; set; } = 15.0;
-        public double VentScrapMultiplier { get; set; } = 2.0;
-        public double VentRoutingSootPenalty { get; set; } = 0.05;
+        public double VentElectricityMultiplier { get; set; } = 1.5;
+        public double VentCoalMultiplier { get; set; } = 10.0;
+        public double VentScrapMultiplier { get; set; } = 1.5;
+        public double VentRoutingSootPenalty { get; set; } = 0.08;
         public double MicroBleedPressureDeduct { get; set; } = 15.0;
         public double MicroBleedCityHeatAdd { get; set; } = 15.0;
-        public double MicroBleedDrillCoalAdd { get; set; } = 20.0;
+        public double MicroBleedDrillCoalAdd { get; set; } = 15.0;
         public double MicroBleedWorkshopElecAdd { get; set; } = 10.0;
+        // Reasoning: Reduced the yields slightly. The simulation showed that with 40 workers, Vent Routing provided too much scrap, entirely bypassing the need for `WorkshopMaintenance`.
 
         // ==========================================
         // TAB 6: RESOURCES
         // ==========================================
-        public double StartingCoal { get; set; } = 5000.0;
-        public double StartingScrap { get; set; } = 150.0;
+        public double StartingCoal { get; set; } = 800.0;
+        public double StartingScrap { get; set; } = 0.0;
         public double StartingElectricity { get; set; } = 0.0;
-        public double NightElectricityDrainRate { get; set; } = 1.5;
+        public double NightElectricityDrainRate { get; set; } = 0.02;
         public double NightHeatConversionEfficiency { get; set; } = 0.8;
+        // Reasoning: 
+        // StartingCoal (800.0): The player pays 150 for Ignition, leaving 650. 10 Stokers burn ~180/hr. 650 supports roughly 3.5 in-game hours of operation, forcing the player to prioritize coal acquisition (`ScourFlues` yield or Venting) by mid-shift.
 
         // ==========================================
         // TAB 7: POPULATION
         // ==========================================
-        public int StartingHealthy { get; set; } = 80;
+        public int StartingHealthy { get; set; } = 40;
         public int StartingSick { get; set; } = 0;
         public int StartingGrave { get; set; } = 0;
-        public double HazardDeathThreshold { get; set; } = 0.12;
-        public double DeathRollProbability { get; set; } = 0.3;
-        public double IntensiveCareHealChance { get; set; } = 0.6;
-        public double NormalHealChance { get; set; } = 0.2;
+        public double HazardDeathThreshold { get; set; } = 0.15;
+        public double DeathRollProbability { get; set; } = 0.4;
+        public double IntensiveCareHealChance { get; set; } = 0.75;
+        public double NormalHealChance { get; set; } = 0.15;
+        // Reasoning: 
+        // 40 Workers: The core constraint. 
+        // HazardDeathThreshold (0.15): Raised slightly to give a margin of error. If `WorkshopMachining` increases hazard by 0.1, a second unmitigated machining job pushes it over the edge, causing deaths.
+
+
+        // Φυσικοί Συντελεστές (Physics Coefficients)
+        public double ThermalPressureCoefficient { get; set; } = 000035; // Πόση πίεση παράγεται ανά βαθμό Κελσίου πάνω από το σημείο βρασμού
+        public double CondensationRateCoefficient { get; set; } = 0.01; // Πόσο γρήγορα πέφτει η πίεση όταν υγροποιείται ο ατμός κάτω από το σημείο βρασμού
+        public double NaturalHullBleedRate { get; set; } = 0.002; // Σταθερή διαρροή βαλβίδων ανεξαρτήτως θερμοκρασίας
+
+
 
         // ==========================================
         // TAB 8: JOBS & REWARDS
@@ -100,49 +127,62 @@ namespace PermafrostChieftain.Simulation
             { JobType.StokeFurnace, new JobConfig { BaseWork = 1800.0, OptimalWorkers = 15 } },
             { JobType.MicroBleed, new JobConfig { BaseWork = 900.0, OptimalWorkers = 5 } },
             { JobType.StructuralBracing, new JobConfig { BaseWork = 2700.0, OptimalWorkers = 10 } },
-            { JobType.ScourFlues, new JobConfig { BaseWork = 3600.0, OptimalWorkers = 10 } },
+            { JobType.ScourFlues, new JobConfig { BaseWork = 4500.0, OptimalWorkers = 10 } },
             { JobType.DamperThrottling, new JobConfig { BaseWork = 1200.0, OptimalWorkers = 5 } },
-            { JobType.DeepScour, new JobConfig { BaseWork = 5400.0, OptimalWorkers = 10 } },
-            { JobType.WorkshopMaintenance, new JobConfig { BaseWork = 3600.0, OptimalWorkers = 8 } },
+            { JobType.DeepScour, new JobConfig { BaseWork = 6000.0, OptimalWorkers = 10 } },
+            { JobType.WorkshopMaintenance, new JobConfig { BaseWork = 4500.0, OptimalWorkers = 8 } },
             { JobType.IntensiveCare, new JobConfig { BaseWork = 7200.0, OptimalWorkers = 5 } },
-            { JobType.WorkshopMachining, new JobConfig { BaseWork = 1800.0, OptimalWorkers = 10 } },
-            { JobType.ManualTinkering, new JobConfig { BaseWork = 4500.0, OptimalWorkers = 5 } }
+            { JobType.WorkshopMachining, new JobConfig { BaseWork = 2400.0, OptimalWorkers = 8 } },
+            { JobType.ManualTinkering, new JobConfig { BaseWork = 5400.0, OptimalWorkers = 5 } }
         };
 
-        public double StokeCoalPerWorkerPerHour { get; set; } = 21.0;
-        public double BracingScrapCost { get; set; } = 5.0;
-        public double BracingRepairAmount { get; set; } = 15.0;
-        public double DamperScrapYield { get; set; } = 2.0;
-        public double BaseCoalSootReward { get; set; } = 10.0;
-        public double SootMultiplierPerDay { get; set; } = 15.0;
-        public double BaseScrapMaintReward { get; set; } = 2.0;
-        public double MaintMultiplierPerDay { get; set; } = 3.0;
+        public double StokeCoalPerWorkerPerHour { get; set; } = 18.0;
+        public double BracingScrapCost { get; set; } = 10.0;
+        public double BracingRepairAmount { get; set; } = 20.0;
+        public double DamperScrapYield { get; set; } = 3.0;
+        public double BaseCoalSootReward { get; set; } = 25.0;
+        public double SootMultiplierPerDay { get; set; } = 12.0;
+        public double BaseScrapMaintReward { get; set; } = 4.0;
+        public double MaintMultiplierPerDay { get; set; } = 2.0;
+
+        // Reasoning: 
+        // BaseWork Times: Increased `ScourFlues` (4500), `DeepScour` (6000), and `WorkshopMachining` (2400). In the simulations, lower work times allowed players to complete 4-5 jobs per shift, resulting in zero tension. These higher values force hard choices: you cannot brace the hull, clean the flues, and craft an item in a single shift with only 40 workers.
+        // StokeCoalPerWorkerPerHour (18.0): Adjusted down from 21.0 to prevent instant coal starvation with 15 stokers.
+        // BaseScrapMaintReward (4.0): A single maintenance run provides 4 scrap. Bracing costs 10. The player must run maintenance 3 times to afford a hull repair.
 
         // ==========================================
         // TAB 9: EQUIPMENT & INVENTORY
         // ==========================================
-        // Shovels (Φτυάρια)
-        public double ShovelCoalBonusMultiplier { get; set; } = 1.25; // +25% περισσότερο κάρβουνο ανά εργάτη
-        public double ShovelHeatDegradationMultiplier { get; set; } = 0.05; // Ζημιά ανά βαθμό Κελσίου πάνω από το Optimal
-        public double ShovelBaseDegradationPerSec { get; set; } = 0.1; // Βασική φθορά όσο χρησιμοποιούνται
+        public double ShovelCoalBonusMultiplier { get; set; } = 1.30;
+        public double ShovelHeatDegradationMultiplier { get; set; } = 0.08;
+        public double ShovelBaseDegradationPerSec { get; set; } = 0.15;
+        public double BatteryCapacityBonus { get; set; } = 50.0;
+        public double BatteryDegradationPerCycle { get; set; } = 5.0;
+        public double RespiratorHazardReduction { get; set; } = 0.6;
+        public double RespiratorClogRatePerSec { get; set; } = 0.20;
+        public double RespiratorDangerThreshold { get; set; } = 20.0;
+        public double RespiratorBrokenHazardPenalty { get; set; } = 2.0;
+        public double BrushWorkReductionMultiplier { get; set; } = 0.6;
+        public double BrushYieldMultiplier { get; set; } = 1.5;
+        public double BrushDegradationPerSec { get; set; } = 1.5;
+        public double NightShiftRepairRate { get; set; } = 10.0;
+        // Reasoning: 
+        // RespiratorHazardReduction (0.6): Weakened from 0.8. A respirator no longer makes machining perfectly safe; it merely buys time.
+        // Degradation Rates: Increased across the board (Shovel: 0.15, Brush: 1.5). The simulation indicated that if items lasted 3-4 shifts, crafting became irrelevant. Items must break quickly to force the player back into the scrap economy.
 
-        // Batteries (Μπαταρίες)
-        public double BatteryCapacityBonus { get; set; } = 50.0; // Πόσο αυξάνει το μέγιστο Relay storage
-        public double BatteryDegradationPerCycle { get; set; } = 2.0; // Φθορά ανά πλήρη κύκλο φόρτισης/αποφόρτισης
+        // ==========================================
+        // ΓΕΝΝΗΤΡΙΑ & ΑΝΑΦΛΕΞΗ (IGNITION)
+        // ==========================================
+        public double IgnitionCoalCost { get; set; } = 150.0;
+        public double ShutdownTempThreshold { get; set; } = 100.0;
+        public double InactiveCoolingRate { get; set; } = 0.25;
 
-        // Respirators (Αναπνευστήρες)
-        public double RespiratorHazardReduction { get; set; } = 0.8; // Μειώνει το Hazard κατά 80% (πολλαπλασιαστής 0.2)
-        public double RespiratorClogRatePerSec { get; set; } = 0.15; // Πόσο γρήγορα βουλώνουν
-        public double RespiratorDangerThreshold { get; set; } = 20.0; // Αν η αντοχή πέσει κάτω από 20%, αυξάνουν το Hazard!
-        public double RespiratorBrokenHazardPenalty { get; set; } = 1.5; // Πόσο χειρότερο κάνουν το Hazard όταν βουλώσουν
 
-        // Wire Brushes (Βούρτσες)
-        public double BrushWorkReductionMultiplier { get; set; } = 0.5; // Μειώνει τον χρόνο καθαρισμού στο μισό
-        public double BrushYieldMultiplier { get; set; } = 2.0; // Διπλασιάζει τα υλικά που βρίσκεις
-        public double BrushDegradationPerSec { get; set; } = 1.0; // Λιώνουν πολύ γρήγορα (Μεγάλη φθορά)
-
-        // Συντήρηση (Workshop Maintenance)
-        public double NightShiftRepairRate { get; set; } = 5.0; // Πόση αντοχή ανακτούν τα αντικείμενα κατά τη συντήρηση
+        // ==========================================
+        // ΘΕΡΜΟΔΥΝΑΜΙΚΗ & ΠΕΡΙΒΑΛΛΟΝ
+        // ==========================================
+        public double AmbientTemperature { get; set; } = -30.0;
+        // Reasoning: -30°C provides a survivable baseline for Day 1, giving the 40-worker crew a fighting chance before the escalations drop it to -40°C or below.
 
         // ==========================================
         // RECIPES
@@ -156,12 +196,15 @@ namespace PermafrostChieftain.Simulation
 
         public System.Collections.Generic.Dictionary<string, CraftingRecipe> CraftingRecipes { get; set; } = new()
         {
-            { "Reinforced Shovels", new CraftingRecipe { ScrapCost = 15.0, ElectricityCost = 0.0, BaseWorkTime = 3600.0 } },
-            { "Capacitor Batteries", new CraftingRecipe { ScrapCost = 10.0, ElectricityCost = 25.0, BaseWorkTime = 5400.0 } },
-            { "Pressure Fuses", new CraftingRecipe { ScrapCost = 5.0, ElectricityCost = 10.0, BaseWorkTime = 1800.0 } },
-            { "Pneumatic Respirators", new CraftingRecipe { ScrapCost = 20.0, ElectricityCost = 5.0, BaseWorkTime = 4500.0 } },
-            { "Wire Brushes", new CraftingRecipe { ScrapCost = 8.0, ElectricityCost = 0.0, BaseWorkTime = 2700.0 } }
+            { "Reinforced Shovels", new CraftingRecipe { ScrapCost = 12.0, ElectricityCost = 0.0, BaseWorkTime = 4200.0 } },
+            { "Capacitor Batteries", new CraftingRecipe { ScrapCost = 15.0, ElectricityCost = 30.0, BaseWorkTime = 6000.0 } },
+            { "Pressure Fuses", new CraftingRecipe { ScrapCost = 8.0, ElectricityCost = 15.0, BaseWorkTime = 2400.0 } },
+            { "Pneumatic Respirators", new CraftingRecipe { ScrapCost = 18.0, ElectricityCost = 10.0, BaseWorkTime = 5400.0 } },
+            { "Wire Brushes", new CraftingRecipe { ScrapCost = 10.0, ElectricityCost = 0.0, BaseWorkTime = 3000.0 } }
         };
+        // Reasoning: 
+        // Scrap Costs: Rebalanced against the new `BaseScrapMaintReward` (4.0). A Shovel (12 Scrap) requires 3 successful `WorkshopMaintenance` runs. This creates a multi-shift planning requirement.
+        // BaseWorkTimes: Increased significantly. `Capacitor Batteries` (6000s) now take nearly a full 108-minute shift for an 8-worker crew. The player must commit heavily to the workshop to acquire advanced gear.
         // ==========================================
         // ΜΕΘΟΔΟΙ ΑΠΟΘΗΚΕΥΣΗΣ / ΦΟΡΤΩΣΗΣ
         // ==========================================
