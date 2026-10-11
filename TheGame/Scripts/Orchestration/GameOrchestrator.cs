@@ -2,6 +2,10 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using PermafrostChieftain.Simulation;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Diagnostics;
+using System.Runtime.ConstrainedExecution;
+using System.Threading.Channels;
 
 namespace PermafrostChieftain.Orchestration
 {
@@ -16,6 +20,13 @@ namespace PermafrostChieftain.Orchestration
         public LogisticsSubsystem LogisticsSub { get; private set; }
         public double TimeMultiplier { get; set; } = 1.0;
         public string CurrentCraftingRecipe { get; private set; } = "";
+
+        public event Action<string, double, int> GameOverTriggered;
+        // --- ΝΕΟ: Στατιστικά τρέχοντος Run ---
+        public double RunGeneratorUptime { get; private set; } = 0.0;
+        public int RunWorkersLost { get; private set; } = 0;
+        public bool IsGameOver { get; private set; } = false;
+
         // Απλοποιημένη λογική logistics (Αποθέματα και Κίνδυνος Μηχανουργείου)
         public LogisticsTelemetry Logistics;
 
@@ -24,13 +35,13 @@ namespace PermafrostChieftain.Orchestration
         public event Action<int> PhaseTransitionTriggered;
         public event Action<double, string, string, string> LogEventDispatched;
 
+
         // Snapshots Τηλεμετρίας για το UIOrchestrator
         public BoilerTelemetry LatestBoilerTelemetry;
         public ThermodynamicsTelemetry LatestThermodynamicTelemetry;
         public WorkforceTelemetry LatestWorkforceTelemetry;
         public List<JobTelemetry> LatestJobsTelemetry = new List<JobTelemetry>();
         public LogisticsTelemetry LatestLogisticsTelemetry;
-
 
         // Γεγονός για τη δημιουργία νέας αναφοράς βάρδιας
         public event Action<string, string> ShiftReportGenerated;
@@ -41,8 +52,9 @@ namespace PermafrostChieftain.Orchestration
         private int _shiftStartSick;
 
         public InventorySubsystem Inventory { get; private set; }
-        public bool IsGeneratorActive { get; private set; } = false; 
-
+        public bool IsGeneratorActive { get; private set; } = false;
+        private double _autoSaveTimer = 0.0;
+        private const double AutoSaveInterval = 10.0;
         public override void _EnterTree()
         {
             if (Clock == null) InitializeSimulation();
@@ -51,9 +63,12 @@ namespace PermafrostChieftain.Orchestration
         public void InitializeSimulation()
         {
             GameSettings.Load();
+            PlayerStats.Load();
+
+            PlayerStats.Instance.TotalRunsPlayed++;
+            PlayerStats.Instance.Save();
 
             Clock = new SimulationClock();
-
             Clock.VentGracePeriodExpired += ExecuteForcedVent;
             Clock.VentModalTimeoutExpired += ExecuteForcedVent;
 
@@ -63,18 +78,28 @@ namespace PermafrostChieftain.Orchestration
             Population = new PopulationSubsystem(JobManager);
             Inventory = new InventorySubsystem();
             LogisticsSub = new LogisticsSubsystem();
+
+            Population.OnCasualtyOccurred += (msg) =>
+            {
+                RunWorkersLost++;
+                PlayerStats.Instance.LifetimeWorkersLost++; // Προσθήκη στα Lifetime
+                PlayerStats.Instance.Save(); // Κάνουμε άμεσο Save αφού ο θάνατος είναι σημαντικό γεγονός
+                DispatchLog("CRITICAL", "MEDICAL", msg);
+            };
+
             // Αρχικά Αποθέματα
             Logistics.CoalStockpile = GameSettings.Instance.StartingCoal;
             Logistics.ScrapStockpile = GameSettings.Instance.StartingScrap;
             Logistics.Electricity = GameSettings.Instance.StartingElectricity;
             Logistics.WorkshopHazardLevel = 0.0;
 
-            // ΝΕΟ: Αρχικοποίηση των Snapshots
+            // Αρχικοποίηση των Snapshots
             _shiftStartCoal = Logistics.CoalStockpile;
             _shiftStartScrap = Logistics.ScrapStockpile;
             _shiftStartSick = Population.SickWorkers;
 
-            Boiler.SetCasingStress (GameSettings.Instance.StartingHullIntegrity);
+            Boiler.SetCasingStress(GameSettings.Instance.StartingHullIntegrity);
+
             // Σύνδεση γεγονότων του Ρολογιού και των Εργασιών
             Clock.VentGracePeriodExpired += OnVentGracePeriodExpired;
             Clock.VentModalTimeoutExpired += OnVentModalTimeoutExpired;
@@ -93,7 +118,7 @@ namespace PermafrostChieftain.Orchestration
                 IsGeneratorActive = true;
 
                 // Δίνουμε μια αρχική θερμοκρασία για να μην σβήσει αμέσως στο επόμενο καρέ
-                Thermodynamics.SetCoreTemperature(GameSettings.Instance.ShutdownTempThreshold + 50.0);
+                Thermodynamics.SetCoreTemperature(GameSettings.Instance.StartingCoreTemp);
 
                 DispatchLog("INFO", "CORE", "ΑΝΑΦΛΕΞΗ: Ο κεντρικός λέβητας τέθηκε σε λειτουργία! Η παραγωγή θερμότητας ξεκίνησε.");
                 return true;
@@ -115,7 +140,12 @@ namespace PermafrostChieftain.Orchestration
         public override void _Process(double delta)
         {
             if (Clock == null) return;
-
+            _autoSaveTimer += delta;
+            if (_autoSaveTimer >= AutoSaveInterval)
+            {
+                PlayerStats.Instance.Save();
+                _autoSaveTimer = 0.0;
+            }
             delta *= TimeMultiplier;
 
             bool phaseChanged = false;
@@ -141,11 +171,10 @@ namespace PermafrostChieftain.Orchestration
 
             if (Clock.CurrentPhase != CyclePhase.VentRouting)
             {
-                // Αν η γεννήτρια δουλεύει κανονικά
                 if (IsGeneratorActive)
                 {
-                    Boiler.ProcessTick(delta, Thermodynamics.CoreTemperature, Clock.CurrentPhase);
-
+                    RunGeneratorUptime += delta;
+                    PlayerStats.Instance.LifetimeGeneratorUptime += delta;
                     // --- ΚΑΤΑΝΑΛΩΣΗ ΑΝΘΡΑΚΑ & ΘΕΡΜΟΔΥΝΑΜΙΚΗ ---
                     int stokeWorkers = JobManager.Jobs[JobType.StokeFurnace].AssignedWorkers;
                     double baseCoalRate = GameSettings.Instance.StokeCoalPerWorkerPerHour;
@@ -178,20 +207,18 @@ namespace PermafrostChieftain.Orchestration
                 }
                 else
                 {
-                    // Η ΓΕΝΝΗΤΡΙΑ ΕΙΝΑΙ ΣΒΗΣΤΗ: Ραγδαία πτώση θερμοκρασιών και πίεσης
-
-                    // Διαβάζουμε την τρέχουσα εξωτερική θερμοκρασία από τη Θερμοδυναμική
-                    double ambientTemp = Thermodynamics.CurrentAmbientTemperature;
-
-                    // Ο πυρήνας παγώνει
+                    // Παθητική ψύξη πυρήνα όταν η γεννήτρια είναι σβηστή
                     Thermodynamics.SetCoreTemperature(Thermodynamics.CoreTemperature - (GameSettings.Instance.InactiveCoolingRate * delta));
+                }
 
-                    // Η πόλη χάνει τη ζέστη της δραματικά
-                    Thermodynamics.SetCityTemperature(Thermodynamics.CityTemperature - ((GameSettings.Instance.InactiveCoolingRate * 0.5) * delta));
+                // --- ΚΟΙΝΗ ΦΥΣΙΚΗ ΠΟΥ ΤΡΕΧΕΙ ΠΑΝΤΑ ---
+                // Ενημερώνουμε την Πίεση και την Πόλη ανεξάρτητα από το αν η γεννήτρια είναι on ή off
+                Boiler.ProcessTick(delta, Thermodynamics.CoreTemperature, Clock.CurrentPhase);
+                Thermodynamics.ProcessCityTemperature(delta, IsGeneratorActive, Boiler.SootFraction);
 
-                    // Η πίεση χάνεται σιγά σιγά επειδή δεν υπάρχει βρασμός
-                    //Boiler.DeductPressure(Boiler.SteamPressure * 0.05 * delta);
-                    Boiler.ProcessTick(delta, Thermodynamics.CoreTemperature, Clock.CurrentPhase);
+                if (Thermodynamics.CityTemperature <= GameSettings.Instance.CityFreezeThreshold)
+                {
+                    TriggerGameOver($"Η ΠΟΛΗ ΠΑΓΩΣΕ. Η θερμοκρασία έπεσε στους {Thermodynamics.CityTemperature:F1}°C.");
                 }
 
                 // --- ΣΥΓΧΡΟΝΙΣΜΟΣ ΠΡΟΟΔΟΥ ΚΑΤΑΣΚΕΥΗΣ (Shared Progress) ---
@@ -213,6 +240,8 @@ namespace PermafrostChieftain.Orchestration
                 {
                     double actualDrain = Math.Min(Logistics.Electricity, GameSettings.Instance.NightElectricityDrainRate * delta);
                     Logistics.Electricity -= actualDrain;
+
+                    // Προσθέτει ρεύμα στο Buffer, το οποίο αφομοιώνεται ομαλά στην πόλη μέσω της ProcessCityTemperature
                     Thermodynamics.AddCityHeatBuffer(actualDrain * GameSettings.Instance.NightHeatConversionEfficiency);
 
                     var equippedBattery = Inventory.GetEquippedItem("Capacitor Batteries");
@@ -226,6 +255,7 @@ namespace PermafrostChieftain.Orchestration
                 JobManager.Tick(delta, Inventory);
                 Population.ProcessTick(delta, Boiler, Thermodynamics, Logistics.WorkshopHazardLevel);
             }
+
             // Περιορισμός του Ρεύματος (Relay) βάσει Μπαταριών
             Logistics.Electricity = Math.Clamp(Logistics.Electricity, 0.0, LogisticsSub.GetMaxElectricity(Inventory));
             UpdateTelemetrySnapshots();
@@ -235,13 +265,8 @@ namespace PermafrostChieftain.Orchestration
         {
             if (Boiler.SteamPressure >= GameSettings.Instance.BlowoutPressureCost)
             {
-                // Καταναλώνει την πίεση (Πάει χαμένη στην ατμόσφαιρα βίαια)
                 Boiler.DeductPressure(GameSettings.Instance.BlowoutPressureCost);
-
-                // Καθαρίζει ένα μεγάλο ποσοστό καπνιάς
                 Boiler.RemoveSoot(GameSettings.Instance.BlowoutSootCleared);
-
-                // Τιμωρία: Τεράστια ζημιά στο κέλυφος (Hull Damage)
                 Boiler.DamageCasing(GameSettings.Instance.BlowoutHullDamage);
 
                 DispatchLog("CRITICAL", "BOILER", "ΕΚΤΑΚΤΗ ΕΚΤΟΝΩΣΗ: Οι σωληνώσεις καθαρίστηκαν βίαια. Σοβαρή ζημιά στο κέλυφος!");
@@ -257,8 +282,6 @@ namespace PermafrostChieftain.Orchestration
         // Καλείται από το Modal του UI όταν ο παίκτης κατανέμει την πίεση (108 λεπτά)
         public void ExecuteVentRouting(double cityHeat, double workshopPower, double drillPower, double atmosphereVent)
         {
-            // Αφαιρούμε ΜΟΝΟ όση πίεση επιλέχθηκε να φύγει από τον λέβητα. 
-            // Το υπόλοιπο παραμένει αυτόματα (Retain).
             double totalVented = cityHeat + workshopPower + drillPower + atmosphereVent;
             Boiler.DeductPressure(totalVented);
 
@@ -267,7 +290,6 @@ namespace PermafrostChieftain.Orchestration
             Logistics.CoalStockpile += drillPower * GameSettings.Instance.VentCoalMultiplier;
             Logistics.ScrapStockpile += drillPower * GameSettings.Instance.VentScrapMultiplier;
 
-            // Η εκτόνωση στην πόλη και το τρυπάνι δημιουργεί καπνιά
             double dirtyVentAmount = cityHeat + drillPower;
             if (dirtyVentAmount > 0)
             {
@@ -295,6 +317,7 @@ namespace PermafrostChieftain.Orchestration
             {
                 DispatchLog("CRITICAL", "HULL", "Αποτυχία εκτόνωσης! Το κέλυφος ράγισε!");
                 Boiler.TriggerCatastrophicFailure();
+                TriggerGameOver("Ο ΛΕΒΗΤΑΣ ΑΝΑΤΙΝΑΧΤΗΚΕ ΛΟΓΩ ΥΠΕΡΠΙΕΣΗΣ.");
                 Clock.AdvanceAfterVent(out bool phaseChanged);
                 if (phaseChanged) PhaseTransitionTriggered?.Invoke((int)Clock.CurrentPhase);
             }
@@ -305,19 +328,16 @@ namespace PermafrostChieftain.Orchestration
             double totalPressure = Boiler.SteamPressure;
             Boiler.DeductPressure(totalPressure);
 
-            // Έλεγχος Εξοπλισμού: Ασφάλειες Πίεσης (Pressure Fuses)
             var equippedFuse = Inventory.GetEquippedItem("Pressure Fuses");
             if (equippedFuse != null)
             {
-                // Η ασφάλεια σώζει το κέλυφος αλλά καταστρέφεται (100% ζημιά)
                 Inventory.DegradeEquippedItem("Pressure Fuses", 100.0);
                 DispatchLog("CRITICAL", "VENT", "Βίαιη Εκτόνωση! Μια ασφάλεια πίεσης (Pressure Fuse) έσκασε και έσωσε το κέλυφος!");
             }
             else
             {
-                // Εφαρμογή της ποινής στο κέλυφος κανονικά
-                Boiler.DamageCasing(GameSettings.Instance.ViolentDischargeCasingDamage);
-                DispatchLog("CRITICAL", "VENT", $"Βίαιη Εκτόνωση! Το κέλυφος υπέστη {GameSettings.Instance.ViolentDischargeCasingDamage} ζημιά.");
+                Boiler.DamageCasing(GameSettings.Instance.CatastrophicHullDamage);
+                DispatchLog("CRITICAL", "VENT", $"Βίαιη Εκτόνωση! Το κέλυφος υπέστη {GameSettings.Instance.CatastrophicHullDamage} ζημιά.");
             }
 
             Clock.AdvanceAfterVent(out bool phaseChanged);
@@ -350,26 +370,20 @@ namespace PermafrostChieftain.Orchestration
                     {
                         DispatchLog("WARNING", "JOBS", "Αποτυχία επισκευής: Δεν υπάρχει διαθέσιμο Scrap!");
                     }
+
+                    // ΕΠΑΝΑΦΟΡΑ: Συνεχόμενο Loop
+                    JobManager.Jobs[type].SetWorkRemaining(GameSettings.Instance.JobConfigs[type].BaseWork);
                     break;
 
                 case JobType.ScourFlues:
                 case JobType.DeepScour:
                     double sootCleaned = (type == JobType.ScourFlues) ? GameSettings.Instance.DaySootCleanAmount : GameSettings.Instance.NightSootCleanAmount;
-
-                    // Το βασικό coal reward μπορεί να κλιμακώνεται με τις μέρες, αλλά εδώ κρατάμε τη βάση 
-                    // συν το multiplier αν έχει βούρτσα.
                     double coalReward = GameSettings.Instance.BaseCoalSootReward;
 
-                    // Έλεγχος Εξοπλισμού: Βούρτσες (Wire Brushes)
                     var equippedBrush = Inventory.GetEquippedItem("Wire Brushes");
                     if (equippedBrush != null)
                     {
-                        // Διπλασιασμός ανταμοιβής σε κάρβουνο!
                         coalReward *= GameSettings.Instance.BrushYieldMultiplier;
-
-                        // Η βούρτσα λιώνει. Αντί να τραβάμε το baseWork, βάζουμε μια σταθερή ζημιά (π.χ. 33% ανά χρήση) 
-                        // για να μην εξαρτάται από τον χρόνο που έκαναν οι εργάτες να τελειώσουν.
-                        // (Το έχουμε στο Settings: BrushDegradationPerSec. Αν το έχεις βάλει 1.0, μπορούμε να το πολλαπλασιάσουμε με το BaseWork)
                         double damageToBrush = GameSettings.Instance.BrushDegradationPerSec * GameSettings.Instance.JobConfigs[type].BaseWork;
                         Inventory.DegradeEquippedItem("Wire Brushes", damageToBrush);
                     }
@@ -379,12 +393,15 @@ namespace PermafrostChieftain.Orchestration
 
                     string scrubTime = (type == JobType.ScourFlues) ? "Ημέρα" : "Νύχτα";
                     DispatchLog("INFO", "JOBS", $"Καθαρισμός ({scrubTime}): Αφαιρέθηκε το {sootCleaned * 100.0:F0}% της αιθάλης. Βρέθηκαν {coalReward:F0}kg άνθρακα.");
+
+                    // ΕΠΑΝΑΦΟΡΑ: Συνεχόμενο Loop
+                    JobManager.Jobs[type].SetWorkRemaining(GameSettings.Instance.JobConfigs[type].BaseWork);
                     break;
 
                 case JobType.WorkshopMaintenance:
                     double scrapYield = JobManager.CalculateWorkshopMaintenanceReward();
                     Logistics.ScrapStockpile += scrapYield;
-                    Logistics.WorkshopHazardLevel = 0.0; // Μηδενίζει τον κίνδυνο ατυχημάτων
+                    Logistics.WorkshopHazardLevel = 0.0;
 
                     foreach (var item in Inventory.Items)
                     {
@@ -395,40 +412,62 @@ namespace PermafrostChieftain.Orchestration
                     }
 
                     DispatchLog("INFO", "JOBS", $"Το μηχανουργείο συντηρήθηκε. Ανακτήθηκαν {scrapYield:F0} Scrap. Εξοπλισμός επισκευάστηκε ελαφρώς.");
+
+                    // ΕΠΑΝΑΦΟΡΑ: Συνεχόμενο Loop
+                    JobManager.Jobs[type].SetWorkRemaining(GameSettings.Instance.JobConfigs[type].BaseWork);
                     break;
 
                 case JobType.DamperThrottling:
-                    // Κρατάει την πίεση στο σύστημα και παράγει ένα μικρό χημικό υποπροϊόν
                     Logistics.ScrapStockpile += 2.0;
                     DispatchLog("INFO", "JOBS", "Οι ρυθμιστές συντηρήθηκαν. Ανακτήθηκαν υλικά καθαρισμού (+2 Scrap).");
+
+                    // ΕΠΑΝΑΦΟΡΑ: Συνεχόμενο Loop
+                    JobManager.Jobs[type].SetWorkRemaining(GameSettings.Instance.JobConfigs[type].BaseWork);
                     break;
 
                 case JobType.IntensiveCare:
-                    // Προκαλεί έναν κύκλο άμεσης θεραπείας στους τραυματίες
                     Population.ProcessOvernightHealing(true);
                     DispatchLog("INFO", "JOBS", "Ολοκληρώθηκε κύκλος εντατικής θεραπείας. Κάποιοι ασθενείς αναρρώνουν.");
+
+                    // ΕΠΑΝΑΦΟΡΑ: Συνεχόμενο Loop θεραπείας
+                    JobManager.Jobs[type].SetWorkRemaining(GameSettings.Instance.JobConfigs[type].BaseWork);
                     break;
+
                 case JobType.MicroBleed:
-                    Boiler.DeductPressure(GameSettings.Instance.MicroBleedPressureDeduct);
+                    // Υπολογίζουμε πόση πίεση θέλουμε να διώξουμε
+                    double intendedDeduct = GameSettings.Instance.MicroBleedPressureDeduct;
+
+                    // Ελέγχουμε πόση πίεση ΥΠΑΡΧΕΙ πραγματικά στον λέβητα
+                    double actualDeduct = Math.Min(Boiler.SteamPressure, intendedDeduct);
+
+                    // Αφαιρούμε την πραγματική πίεση
+                    Boiler.DeductPressure(actualDeduct);
+
                     if (JobManager.ActiveMicroBleedTarget == MicroBleedTarget.Atmosphere)
                     {
-                        DispatchLog("INFO", "JOBS", "Η μικρο-εκτόνωση ολοκληρώθηκε (-15 Bar στην Ατμόσφαιρα).");
+                        DispatchLog("INFO", "JOBS", $"Η μικρο-εκτόνωση ολοκληρώθηκε (-{actualDeduct:F1} Bar στην Ατμόσφαιρα).");
                     }
                     else if (JobManager.ActiveMicroBleedTarget == MicroBleedTarget.CityHeat)
                     {
-                        Thermodynamics.AddCityHeatBuffer(GameSettings.Instance.MicroBleedCityHeatAdd);
-                        DispatchLog("INFO", "JOBS", "Η μικρο-εκτόνωση ολοκληρώθηκε (+15 Θερμότητα στην Πόλη).");
+                        // Η θερμότητα είναι άμεσα συνδεδεμένη με τον ατμό που εκτονώθηκε
+                        double addedHeat = actualDeduct * GameSettings.Instance.PressureToHeatConversionRate;
+                        Thermodynamics.AddCityHeatBuffer(addedHeat);
+
+                        DispatchLog("INFO", "JOBS", $"Η μικρο-εκτόνωση ολοκληρώθηκε (-{actualDeduct:F1} Bar -> +{addedHeat:F1}°C στο Buffer της Πόλης).");
                     }
                     else if (JobManager.ActiveMicroBleedTarget == MicroBleedTarget.SubterraneanDrill)
                     {
                         Logistics.CoalStockpile += GameSettings.Instance.MicroBleedDrillCoalAdd;
-                        DispatchLog("INFO", "JOBS", "Η μικρο-εκτόνωση ολοκληρώθηκε (+20kg Άνθρακας από το Drill).");
+                        DispatchLog("INFO", "JOBS", $"Η μικρο-εκτόνωση ολοκληρώθηκε (-{actualDeduct:F1} Bar -> +20kg Άνθρακας από το Drill).");
                     }
                     else if (JobManager.ActiveMicroBleedTarget == MicroBleedTarget.WorkshopPower)
                     {
                         Logistics.Electricity += GameSettings.Instance.MicroBleedWorkshopElecAdd;
-                        DispatchLog("INFO", "JOBS", "Η μικρο-εκτόνωση ολοκληρώθηκε (+10 kW Ρεύμα στο Μηχανουργείο).");
+                        DispatchLog("INFO", "JOBS", $"Η μικρο-εκτόνωση ολοκληρώθηκε (-{actualDeduct:F1} Bar -> +10 kW Ρεύμα).");
                     }
+
+                    // ΕΠΑΝΑΦΟΡΑ: Συνεχόμενο Loop
+                    JobManager.Jobs[type].SetWorkRemaining(GameSettings.Instance.JobConfigs[type].BaseWork);
                     break;
 
                 case JobType.WorkshopMachining:
@@ -440,7 +479,6 @@ namespace PermafrostChieftain.Orchestration
                         double elecCost = (type == JobType.WorkshopMachining) ? recipe.ElectricityCost : 0.0;
                         double baseHazardIncrease = (type == JobType.WorkshopMachining) ? 0.1 : 0.05;
 
-                        // Έλεγχος Εξοπλισμού: Αναπνευστήρες (Pneumatic Respirators)
                         var equippedRespirator = Inventory.GetEquippedItem("Pneumatic Respirators");
                         double finalHazardIncrease = baseHazardIncrease;
 
@@ -477,7 +515,7 @@ namespace PermafrostChieftain.Orchestration
                         {
                             DispatchLog("WARNING", "JOBS", $"Παύση Κατασκευής ({JobManager.ActiveCraftingRecipe}): Ανεπαρκή υλικά ή ρεύμα!");
                             double currentWork = JobManager.Jobs[type].WorkRemaining;
-                            JobManager.Jobs[type].SetWorkRemaining(currentWork + 1.0);
+                            JobManager.Jobs[type].SetWorkRemaining(currentWork + 1.0); // Μικρό penalty/delay αν λείπουν υλικά
                         }
                     }
                     break;
@@ -490,9 +528,6 @@ namespace PermafrostChieftain.Orchestration
         {
             if (!GameSettings.Instance.CraftingRecipes.TryGetValue(recipeName, out var recipe)) return false;
 
-            // Αφαιρέσαμε τον έλεγχο (!string.IsNullOrEmpty) που υπήρχε εδώ, 
-            // για να μπορεί ο παίκτης να αλλάξει συνταγή στη μέση της κατασκευής!
-
             JobManager.SetActiveCraftingRecipe(recipeName);
             JobManager.Jobs[JobType.WorkshopMachining].SetWorkRemaining(recipe.BaseWorkTime);
             JobManager.Jobs[JobType.ManualTinkering].SetWorkRemaining(recipe.BaseWorkTime);
@@ -500,6 +535,7 @@ namespace PermafrostChieftain.Orchestration
             DispatchLog("INFO", "WORKSHOP", $"Η γραμμή παραγωγής άλλαξε. Νέα κατασκευή: {recipeName}.");
             return true;
         }
+
         // --- 3. Τηλεμετρία και Καταγραφή ---
 
         public void DispatchLog(string severity, string category, string message)
@@ -536,7 +572,6 @@ namespace PermafrostChieftain.Orchestration
                 UnassignedReserve = Population.UnassignedReserve
             };
 
-            // Δημιουργία snapshot για όλες τις εργασίες (για να τροφοδοτήσουμε τις μπάρες προόδου στο UI)
             LatestJobsTelemetry.Clear();
             foreach (var job in JobManager.Jobs.Values)
             {
@@ -564,7 +599,6 @@ namespace PermafrostChieftain.Orchestration
 
             string reportTitle = $"[{timeStamp}] {shiftName} Report";
 
-            // Χρήση Markdown-like μορφοποίησης για το RichTextLabel
             string reportContent = $"[b]{shiftName} Summary[/b]\n";
             reportContent += $"Time of Generation: {timeStamp}\n\n";
 
@@ -582,13 +616,35 @@ namespace PermafrostChieftain.Orchestration
             reportContent += $"• Core Temp: {Thermodynamics.CoreTemperature:F0}°C\n";
             reportContent += $"• Soot Accumulation: {Boiler.SootFraction * 100.0:F1}%\n";
 
-            // Αποστολή του event στο UI
             ShiftReportGenerated?.Invoke(reportTitle, reportContent);
 
-            // Ενημέρωση των Snapshots για την επόμενη βάρδια
             _shiftStartCoal = Logistics.CoalStockpile;
             _shiftStartScrap = Logistics.ScrapStockpile;
             _shiftStartSick = Population.SickWorkers;
         }
+
+        public void TriggerGameOver(string reason)
+        {
+            if (IsGameOver) return; // Για να μην κληθεί πολλές φορές
+
+            IsGameOver = true;
+            TimeMultiplier = 0.0; // Σταματάει τον χρόνο του παιχνιδιού
+
+            DispatchLog("CRITICAL", "SYSTEM", $"GAME OVER: {reason}");
+
+            PlayerStats.Instance.Save();
+
+            // Ειδοποιούμε το UI να εμφανίσει την οθόνη
+            GameOverTriggered?.Invoke(reason, RunGeneratorUptime, RunWorkersLost);
+        }
+        public override void _ExitTree()
+        {
+            // Κάνουμε ένα τελευταίο, ασφαλές Save πριν τερματίσει το παιχνίδι
+            if (PlayerStats.Instance != null)
+            {
+                PlayerStats.Instance.Save();
+            }
+        }
+
     }
 }

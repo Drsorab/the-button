@@ -72,6 +72,11 @@ namespace PermafrostChieftain.Orchestration
         private VBoxContainer _logsVBox;
         private VBoxContainer _reportListVBox;
         private RichTextLabel _reportContentText;
+
+        private Control _gameOverModal;
+        private Label _gameOverReasonLabel;
+        private Button _gameOverRestartBtn;
+        private RichTextLabel _finalStatsLabel;
         public override void _Ready()
         {
             _gameOrchestrator = GetNode<GameOrchestrator>("../");
@@ -128,6 +133,7 @@ namespace PermafrostChieftain.Orchestration
             //Σύνδεση με το σύστημα καταγραφής
             _gameOrchestrator.LogEventDispatched += OnLogDispatched;
             _gameOrchestrator.ShiftReportGenerated += OnShiftReportGenerated;
+            _gameOrchestrator.GameOverTriggered += OnGameOverTriggered;
         }
 
         private void BindUiNodes()
@@ -241,6 +247,16 @@ namespace PermafrostChieftain.Orchestration
 
             // Ενεργοποίηση BBCode για το RichTextLabel ώστε να υποστηρίζει έντονα γράμματα [b]
             _reportContentText.BbcodeEnabled = true;
+
+            _gameOverModal = overlay.GetNode<Control>("GameOverModal");
+
+            // Βρες το Label και το Κουμπί. Προσάρμοσε τα paths ανάλογα με το πώς τα έχεις ονομάσει στο Godot!
+            // Αν το GameOverModal είναι VBox, μπορεί να είναι απλά "ReasonLabel".
+            _gameOverReasonLabel = _gameOverModal.GetNode<Label>("GameOverVBox/ReasonLabel");
+            _gameOverRestartBtn = _gameOverModal.GetNode<Button>("GameOverVBox/RestartButton");
+            _finalStatsLabel = _gameOverModal.GetNode<RichTextLabel>("GameOverVBox/FinalStatsLabel");
+            // Το κρύβουμε στην αρχή
+            _gameOverModal.Visible = false;
         }
 
         // Βοηθητική μέθοδος για την εύκολη ανάκτηση των κόμβων κάθε εργασίας
@@ -294,6 +310,12 @@ namespace PermafrostChieftain.Orchestration
 
             _openLogsButton.Pressed += () => _logsReportsModal.Visible = true;
             _closeLogsBtn.Pressed += () => _logsReportsModal.Visible = false;
+
+            _gameOverRestartBtn.Pressed += () =>
+            {
+                // Αυτό κάνει "hard reset" σε όλο το παιχνίδι!
+                GetTree().ReloadCurrentScene();
+            };
         }
         private void OnMainCenterButtonPressed()
         {
@@ -686,6 +708,36 @@ namespace PermafrostChieftain.Orchestration
             
             // Προαιρετικά: Αυτόματη προβολή της νεότερης αναφοράς
             _reportContentText.Text = content;
+        }
+
+        private void OnGameOverTriggered(string reason, double runUptimeSec, int runDeaths)
+        {
+            _gameOverModal.Visible = true;
+            _gameOverReasonLabel.Text = reason;
+            _gameOverRestartBtn.Modulate = new Color(0.2f, 1f, 0.2f);
+
+            // Μορφοποίηση του χρόνου του τρέχοντος Run
+            TimeSpan runTime = TimeSpan.FromSeconds(runUptimeSec);
+            string formattedRunTime = $"{(int)runTime.TotalHours}h {runTime.Minutes}m";
+
+            // Μορφοποίηση του συνολικού χρόνου (Lifetime)
+            TimeSpan lifeTime = TimeSpan.FromSeconds(PlayerStats.Instance.LifetimeGeneratorUptime);
+            string formattedLifeTime = $"{(int)lifeTime.TotalHours}h {lifeTime.Minutes}m";
+
+            // Δημιουργία του τελικού κειμένου με BBCode (Markdown για RichText)
+            string statsText = "[center][b]--- ΑΝΑΦΟΡΑ ΒΑΡΔΙΑΣ ---[/b][/center]\n\n";
+
+            statsText += "[b]ΤΡΕΧΟΥΣΑ ΠΡΟΣΠΑΘΕΙΑ[/b]\n";
+            statsText += $"Χρόνος Λειτουργίας Λέβητα: [color=green]{formattedRunTime}[/color]\n";
+            statsText += $"Απώλειες Προσωπικού: [color=red]{runDeaths}[/color] εργάτες\n\n";
+
+            statsText += "[b]ΙΣΤΟΡΙΚΟ ΑΡΧΕΙΟ (LIFETIME)[/b]\n";
+            statsText += $"Συνολικές Προσπάθειες: {PlayerStats.Instance.TotalRunsPlayed}\n";
+            statsText += $"Συνολικός Χρόνος Λειτουργίας: {formattedLifeTime}\n";
+            statsText += $"Συνολικές Απώλειες: {PlayerStats.Instance.LifetimeWorkersLost} εργάτες\n";
+
+            // Εμφάνιση στο UI
+            _finalStatsLabel.Text = statsText;
         }
     }
 }

@@ -23,15 +23,22 @@ namespace PermafrostChieftain.Simulation
         // ==========================================
         // TAB 2: CORE
         // ==========================================
-        public double StartingCoreTemp { get; set; } = 350.0;
-        public double StartingPressure { get; set; } = 40.0;
+        public double StartingCoreTemp { get; set; } = 150.0;
+        public double StartingPressure { get; set; } = 0.0;
         public double OptimalCoreTemp { get; set; } = 750.0;
         public double BoilingPointThreshold { get; set; } = 250.0;
         public double MaxPressure { get; set; } = 200.0;
         public double BasePressureGenerationRate { get; set; } = 0.015;
-        public double HeatGainPerKgCoal { get; set; } = 25.0;
-        public double AmbientHeatLossRate { get; set; } = 0.15;
+        public double HeatGainPerKgCoal { get; set; } = 85.0;
+        public double AmbientHeatLossRate { get; set; } = 0.0025;
         public double NightBleedRate { get; set; } = 0.003;
+
+        // Πόση ενέργεια του άνθρακα χάνεται για να ζεσταθούν τα κρύα μέταλλα (60% απώλεια όταν είναι κρύο)
+        public double ColdFurnaceEfficiencyPenalty { get; set; } = 0.6;
+
+        // Πόσο "βαρύ" είναι το σύστημα. Μικρότερο νούμερο = πιο αργές/ομαλές αλλαγές θερμοκρασίας
+        public double CoreThermalInertia { get; set; } = 0.3;
+
         // Reasoning: 
         // Starting Values: Following the tutorial blowout, the generator is cold (200°C) and depressurized (35 Bar). 
         // OptimalCoreTemp (750°C): Raised from 550°C to require 12-15 workers assigned to StokeFurnace to maintain it against the AmbientHeatLossRate.
@@ -45,11 +52,16 @@ namespace PermafrostChieftain.Simulation
         public double HeatDamageThreshold { get; set; } = 950.0;
         public double CasingDamageHeatMultiplier { get; set; } = 0.05;
         public double CasingDamagePressureMultiplier { get; set; } = 0.08;
-        public double ViolentDischargeCasingDamage { get; set; } = 25.0;
-        public double HullCrackedLeakRate { get; set; } = 0.3;
-        // Reasoning: 
-        // StartingHullIntegrity (70.0): The tutorial blowout damages the hull, forcing the player to prioritize `StructuralBracing` early on. 
-        // CasingDamagePressureMultiplier (0.08): If pressure reaches 195 Bar (15 over threshold), the hull takes 1.2 damage per second, granting a ~25-second panic window before failure.
+        // Πόση ζημιά (Integrity) παθαίνει το κέλυφος όταν δημιουργηθεί ρήγμα
+        public double CatastrophicHullDamage { get; set; } = 25.0;
+
+        // Πολλαπλασιαστής για το πόσο γρήγορα κλιμακώνεται η διαρροή πίεσης ανά δευτερόλεπτο
+        public double HullCrackPressureLeakMultiplier { get; set; } = 1.5;
+
+        // Πόση αντοχή ΠΡΕΠΕΙ να επισκευαστεί (μετά το ρήγμα) για να θεωρηθεί "σφραγισμένο"
+        // Το 15.0 αντιστοιχεί ακριβώς σε μία ολοκληρωμένη εργασία "Structural Bracing"
+        public double IntegrityRepairRequiredToSeal { get; set; } = 15.0;
+
 
         // ==========================================
         // TAB 4: SOOT (Αιθάλη)
@@ -78,6 +90,15 @@ namespace PermafrostChieftain.Simulation
         public double MicroBleedCityHeatAdd { get; set; } = 15.0;
         public double MicroBleedDrillCoalAdd { get; set; } = 15.0;
         public double MicroBleedWorkshopElecAdd { get; set; } = 10.0;
+
+        // Στο TAB 5: VENT (Εκτόνωση & Routing)
+        // Αντί για σταθερό νούμερο, τώρα η πίεση πολλαπλασιάζεται με αυτό τον συντελεστή
+        public double PressureToHeatConversionRate { get; set; } = 0.8; // π.χ. 15 Bar ατμού * 0.8 = 12°C ζέστης στο Buffer
+
+        // Στο TAB 2: ΘΕΡΜΟΔΥΝΑΜΙΚΗ ΤΗΣ ΠΟΛΗΣ
+        // Καθορίζει πόσο γρήγορα αποδεσμεύεται η ζέστη από το Buffer στην πόλη (Ομαλή μετάβαση)
+        public double BufferTransferRate { get; set; } = 0.25; // 0.25°C ανά δευτερόλεπτο
+
         // Reasoning: Reduced the yields slightly. The simulation showed that with 40 workers, Vent Routing provided too much scrap, entirely bypassing the need for `WorkshopMaintenance`.
 
         // ==========================================
@@ -92,8 +113,9 @@ namespace PermafrostChieftain.Simulation
         // StartingCoal (800.0): The player pays 150 for Ignition, leaving 650. 10 Stokers burn ~180/hr. 650 supports roughly 3.5 in-game hours of operation, forcing the player to prioritize coal acquisition (`ScourFlues` yield or Venting) by mid-shift.
 
         // ==========================================
-        // TAB 7: POPULATION
+        // TAB 7: POPULATION & SURVIVAL
         // ==========================================
+        // Τα υπάρχοντα που ήδη έχεις:
         public int StartingHealthy { get; set; } = 40;
         public int StartingSick { get; set; } = 0;
         public int StartingGrave { get; set; } = 0;
@@ -101,6 +123,20 @@ namespace PermafrostChieftain.Simulation
         public double DeathRollProbability { get; set; } = 0.4;
         public double IntensiveCareHealChance { get; set; } = 0.75;
         public double NormalHealChance { get; set; } = 0.15;
+
+        // --- ΝΕΟ: Thresholds Πόλης (City Temperature Hazards) ---
+        public double CityChillyThreshold { get; set; } = 10.0;     // Κάτω από 10°C, η πόλη είναι ψυχρή
+        public double CityFreezingThreshold { get; set; } = 0.0;    // Κάτω από 0°C, η πόλη παγώνει
+        public double CityDeadlyThreshold { get; set; } = -10.0;    // Κάτω από -10°C, ακραίος κίνδυνος
+
+        // --- ΝΕΟ: Πιθανότητες Αρρώστιας λόγω Κρύου (City Cold Penalties) ---
+        public double ChillyHazardPenalty { get; set; } = 0.05;     // 5% επιπλέον κίνδυνος ανά εργάτη
+        public double FreezingHazardPenalty { get; set; } = 0.15;   // 15% επιπλέον κίνδυνος
+        public double DeadlyHazardPenalty { get; set; } = 0.30;     // 30% επιπλέον κίνδυνος
+
+        // (Αν θέλεις να κρατήσεις και την υπερθέρμανση που βάλαμε πριν)
+        public double CityOverheatThreshold { get; set; } = 25.0;
+        public double OverheatHazardPenalty { get; set; } = 0.15;
         // Reasoning: 
         // 40 Workers: The core constraint. 
         // HazardDeathThreshold (0.15): Raised slightly to give a margin of error. If `WorkshopMachining` increases hazard by 0.1, a second unmitigated machining job pushes it over the edge, causing deaths.
@@ -183,6 +219,18 @@ namespace PermafrostChieftain.Simulation
         // ==========================================
         public double AmbientTemperature { get; set; } = -30.0;
         // Reasoning: -30°C provides a survivable baseline for Day 1, giving the 40-worker crew a fighting chance before the escalations drop it to -40°C or below.
+
+        // ==========================================
+        // ΘΕΡΜΟΔΥΝΑΜΙΚΗ ΤΗΣ ΠΟΛΗΣ (CITY HEATING PHYSICS)
+        // ==========================================
+        public double StartingCityTemp { get; set; } = -10.0; // Η πόλη ξεκινάει με λίγη ζέστη από την προηγούμενη βάρδια
+        public double CityHeatingCoefficient { get; set; } = 0.0001;
+        public double CityCoolingCoefficient { get; set; } = 0.0016;
+        public double MinimumHeatingThreshold { get; set; } = 250.0;
+        public double CityFreezeThreshold { get; set; } = -20.0; // Game Over
+
+
+
 
         // ==========================================
         // RECIPES

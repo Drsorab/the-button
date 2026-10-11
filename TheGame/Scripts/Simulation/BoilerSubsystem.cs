@@ -7,7 +7,11 @@ namespace PermafrostChieftain.Simulation
         public double SteamPressure { get; private set; } = GameSettings.Instance.StartingPressure;
         public double CasingIntegrity { get; private set; } = 100.0;
         public double SootFraction { get; private set; } = 0.0;
+        // Κρατάει το ποσό της επισκευής που λείπει για να κλείσει η τρύπα
+        private double _pendingRepairToSeal = 0.0;
 
+        // Κρατάει τον χρόνο που παραμένει ανοιχτό το ρήγμα (για να αυξάνεται η διαρροή)
+        private double _crackDuration = 0.0;
         public int AvailableFuses { get; set; } = 3;
 
         // Κατάσταση βλάβης αν δεν πατηθεί το κουμπί και δεν υπάρχουν ασφάλειες
@@ -17,6 +21,7 @@ namespace PermafrostChieftain.Simulation
         {
             if (deltaTime <= 0.0) return;
 
+            // --- 1. Υπολογισμός Θερμοδυναμικής Πίεσης ---
             // Η αιθάλη (soot) δρα ως μόνωση
             double insulationFactor = 1.0 - (SootFraction * GameSettings.Instance.SootInsulationMultiplier);
             double effectiveWaterTemp = coreTemp * Math.Max(0.1, insulationFactor);
@@ -27,9 +32,6 @@ namespace PermafrostChieftain.Simulation
             if (heatDelta > 0)
             {
                 // NORMALIZED HEAT RATIO:
-                // Υπολογίζει πόσο κοντά είμαστε στην ιδανική θερμοκρασία.
-                // Στους 750°C (Optimal) το ratio είναι 1.0, άρα παράγουμε ακριβώς το BasePressure (0.015).
-                // Στους 350°C το ratio είναι 0.2, άρα παράγουμε το 20% της μέγιστης πίεσης.
                 double optimalDelta = GameSettings.Instance.OptimalCoreTemp - GameSettings.Instance.BoilingPointThreshold;
                 double heatRatio = heatDelta / optimalDelta;
 
@@ -46,23 +48,34 @@ namespace PermafrostChieftain.Simulation
                 thermodynamicPressureRate = -(Math.Abs(heatDelta) * GameSettings.Instance.CondensationRateCoefficient);
             }
 
+            // --- 2. Υπολογισμός Απώλειας Πίεσης (Bleed) ---
             double totalBleedRate = GameSettings.Instance.NaturalHullBleedRate;
-
-            if (IsHullCracked)
-            {
-                totalBleedRate += GameSettings.Instance.HullCrackedLeakRate;
-            }
 
             if (currentPhase == CyclePhase.NightBleed)
             {
                 totalBleedRate += GameSettings.Instance.NightBleedRate;
             }
 
-            // Εφαρμογή
+            // Εφαρμογή φυσιολογικής πίεσης / συμπύκνωσης / σταθερού bleed
             SteamPressure += (thermodynamicPressureRate - totalBleedRate) * deltaTime;
+
+            // --- ΝΕΟ: ΔΥΝΑΜΙΚΗ ΔΙΑΡΡΟΗ ΡΗΓΜΑΤΟΣ (CRACK LEAK) ---
+            // Αντικαθιστά το παλιό, σταθερό HullCrackedLeakRate
+            if (IsHullCracked)
+            {
+                _crackDuration += deltaTime;
+
+                // Η διαρροή ξεκινάει σιγά-σιγά και επιταχύνεται. 
+                // Το 0.1 είναι ο ρυθμός βάσης, επί τον χρόνο (σε δευτερόλεπτα), επί τον multiplier από τα Settings.
+                double leakRate = (_crackDuration * 0.1) * GameSettings.Instance.HullCrackPressureLeakMultiplier;
+
+                // Αφαιρούμε άμεσα την πίεση (ανεξάρτητα από τον κανονικό βρασμό)
+                SteamPressure -= (leakRate * deltaTime);
+            }
+
             SteamPressure = Math.Clamp(SteamPressure, 0.0, GameSettings.Instance.MaxPressure);
 
-            // --- 3. Διαχείριση Ζημιάς Κελύφους ---
+            // --- 3. Διαχείριση Ζημιάς Κελύφους (Degradation) ---
             if (SteamPressure > GameSettings.Instance.PressureDamageThreshold)
             {
                 CasingIntegrity -= (GameSettings.Instance.CasingDamagePressureMultiplier * deltaTime);
@@ -84,11 +97,21 @@ namespace PermafrostChieftain.Simulation
         // Καλείται για επισκευή του κελύφους (Patching Job)
         public void RepairCasing(double amount)
         {
+            // Αυξάνουμε τη συνολική αντοχή, αλλά δεν ξεπερνάμε το 100%
             CasingIntegrity = Math.Clamp(CasingIntegrity + amount, 0.0, 100.0);
-            if (CasingIntegrity > 50.0)
+
+            // Αν το κέλυφος είναι ραγισμένο, αφαιρούμε την επισκευή από την "οφειλή"
+            if (IsHullCracked)
             {
-                // Αν επισκευαστεί αρκετά, το ρήγμα σφραγίζει
-                IsHullCracked = false;
+                _pendingRepairToSeal -= amount;
+
+                // Αν ρίξαμε αρκετό Scrap για να καλύψουμε την τρύπα
+                if (_pendingRepairToSeal <= 0.0)
+                {
+                    IsHullCracked = false;
+                    _pendingRepairToSeal = 0.0;
+                    _crackDuration = 0.0; // Το ρήγμα έκλεισε, μηδενίζουμε τον χρόνο διαρροής
+                }
             }
         }
 
@@ -102,8 +125,16 @@ namespace PermafrostChieftain.Simulation
         public void TriggerCatastrophicFailure()
         {
             IsHullCracked = true;
-            CasingIntegrity -= 25.0;
-            SteamPressure = Math.Max(0.0, SteamPressure - 50.0); // Χάνει πίεση βίαια λόγω ρήγματος
+
+            // Το κέλυφος παθαίνει τη ζημιά που ορίσαμε στα Settings
+            CasingIntegrity = Math.Max(0.0, CasingIntegrity - GameSettings.Instance.CatastrophicHullDamage);
+
+            // Απαιτείται τόση επισκευή όση βάλαμε στα Settings για να σφραγίσει ξανά
+            _pendingRepairToSeal = GameSettings.Instance.IntegrityRepairRequiredToSeal;
+
+            // Μηδενίζουμε τον χρόνο ρήγματος για να ξεκινήσει η κλιμακούμενη διαρροή
+            _crackDuration = 0.0;
+
         }
 
         public void AddSoot(double amount)

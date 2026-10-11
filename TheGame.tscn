@@ -1029,7 +1029,7 @@ layout_mode = 2
 [node name="GameOverVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/GameOverModal" unique_id=803645241]
 layout_mode = 2
 
-[node name="GameOverReasonLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/GameOverModal/GameOverVBox" unique_id=1291330928]
+[node name="ReasonLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/GameOverModal/GameOverVBox" unique_id=1291330928]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "TOTAL STRUCTURAL MELTDOWN"
