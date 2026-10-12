@@ -3,22 +3,31 @@ using System.Linq;
 
 namespace PermafrostChieftain.Simulation
 {
+    // Τα 5 στάδια διαβίωσης της πόλης
+    public enum CityLivingStage
+    {
+        Freezing,
+        Cold,
+        Livable,
+        Warm,
+        Comfortable
+    }
+
     public class PopulationSubsystem
     {
         public int TotalPopulation => HealthyWorkers + SickWorkers + GraveWorkers;
-        public int HealthyWorkers { get; private set; } = GameSettings.Instance.StartingHealthy;
-        public int SickWorkers { get; private set; } = GameSettings.Instance.StartingSick;
-        public int GraveWorkers { get; private set; } = GameSettings.Instance.StartingGrave;
+        public int HealthyWorkers { get; private set; }
+        public int SickWorkers { get; private set; }
+        public int GraveWorkers { get; private set; }
         public int DeadWorkers { get; private set; } = 0;
 
-        // Εύρεση διαθέσιμων εργατών (υγιείς μείον αυτοί που έχουν ήδη ανατεθεί)
         public int UnassignedReserve => HealthyWorkers - GetTotalAssignedWorkers();
+        public CityLivingStage CurrentCityStage { get; private set; } = CityLivingStage.Comfortable;
 
         private readonly JobManager _jobManager;
         private double _injuryCheckTimer = 0.0;
-        private const double InjuryCheckInterval = 60.0; // Έλεγχος τραυματισμών/ασθενειών κάθε 60 δευτερόλεπτα
+        private const double InjuryCheckInterval = 60.0; // Ο έλεγχος γίνεται κάθε 1 in-game λεπτό
 
-        // Γεγονός για το UI/Logs όταν κάποιος πεθάνει ή τραυματιστεί
         public event Action<string> OnCasualtyOccurred;
 
         public PopulationSubsystem(JobManager jobManager)
@@ -26,12 +35,19 @@ namespace PermafrostChieftain.Simulation
             _jobManager = jobManager;
         }
 
+        public void Initialize()
+        {
+            // Ανάκτηση από το TAB 7 του GameSettings (που φτιάξαμε στην αρχή)
+            HealthyWorkers = GameSettings.Instance.StartingHealthy;
+            SickWorkers = GameSettings.Instance.StartingSick;
+            GraveWorkers = GameSettings.Instance.StartingGrave;
+        }
+
         public int GetTotalAssignedWorkers()
         {
             return _jobManager.Jobs.Values.Sum(job => job.AssignedWorkers);
         }
 
-        // Αυξομείωση εργατών σε μια συγκεκριμένη εργασία
         public bool TryAdjustWorkers(JobType type, int delta)
         {
             if (!_jobManager.Jobs.TryGetValue(type, out JobOrder job)) return false;
@@ -43,150 +59,127 @@ namespace PermafrostChieftain.Simulation
             return true;
         }
 
-        public void ProcessTick(double deltaTime, BoilerSubsystem boiler, ThermodynamicsSubsystem thermo, double workshopHazard)
+        public void ProcessTick(double deltaTime, ThermodynamicsSubsystem thermo)
         {
             if (deltaTime <= 0.0) return;
 
+            // 1. Ενημέρωση του Σταδίου Διαβίωσης βάσει της θερμοκρασίας
+            UpdateCityLivingStage(thermo.CityTemperature);
+
+            // 2. Έλεγχος Ασθενειών/Ατυχημάτων
             _injuryCheckTimer += deltaTime;
             if (_injuryCheckTimer >= InjuryCheckInterval)
             {
-                EvaluateWorkplaceHazards(boiler, thermo, workshopHazard);
+                EvaluateWorkplaceHazards();
                 _injuryCheckTimer = 0.0;
             }
         }
 
-        private void EvaluateWorkplaceHazards(BoilerSubsystem boiler, ThermodynamicsSubsystem thermo, double workshopHazard)
+        // =========================================================
+        // ΥΠΟΛΟΓΙΣΜΟΣ ΤΩΝ 5 ΣΤΑΔΙΩΝ (CITY LIVING STAGES)
+        // =========================================================
+        private void UpdateCityLivingStage(double cityTemp)
+        {
+            if (cityTemp >= GameSettings.Instance.TempStage_Comfortable)
+                CurrentCityStage = CityLivingStage.Comfortable;
+            else if (cityTemp >= GameSettings.Instance.TempStage_Warm)
+                CurrentCityStage = CityLivingStage.Warm;
+            else if (cityTemp >= GameSettings.Instance.TempStage_Livable)
+                CurrentCityStage = CityLivingStage.Livable;
+            else if (cityTemp >= GameSettings.Instance.TempStage_Cold)
+                CurrentCityStage = CityLivingStage.Cold;
+            else
+                CurrentCityStage = CityLivingStage.Freezing;
+        }
+
+        private void EvaluateWorkplaceHazards()
         {
             Random rng = new Random();
 
-            // 1. Υπολογισμός Κινδύνου Καιρού της Πόλης (Ζ)
-            double weatherHazard = CalculateCityWeatherHazard(thermo.CityTemperature);
+            // Η πιθανότητα ασθένειας ανά λεπτό, ανάλογα με το Στάδιο Διαβίωσης
+            double citySicknessRate = CurrentCityStage switch
+            {
+                CityLivingStage.Comfortable => GameSettings.Instance.SicknessRate_Comfortable,
+                CityLivingStage.Warm => GameSettings.Instance.SicknessRate_Warm,
+                CityLivingStage.Livable => GameSettings.Instance.SicknessRate_Livable,
+                CityLivingStage.Cold => GameSettings.Instance.SicknessRate_Cold,
+                CityLivingStage.Freezing => GameSettings.Instance.SicknessRate_Freezing,
+                _ => 0.0
+            };
 
             foreach (var job in _jobManager.Jobs.Values)
             {
                 if (job.AssignedWorkers <= 0) continue;
 
-                // 2. Υπολογισμός Κινδύνου Εργασίας/Μηχανής (X)
-                double jobHazard = CalculateJobHazard(job.Type, boiler, thermo, workshopHazard);
+                // (Στη Φάση 5 θα προσθέσουμε και τους κινδύνους της κάθε εργασίας - Job Hazards.
+                // Προς το παρόν επικεντρωνόμαστε στον κύριο εχθρό: Το Κρύο)
+                double totalHazard = citySicknessRate;
 
-                // 3. Υπολογισμός Κινδύνου Συνωστισμού (Y)
-                double crowdingRatio = ((double)job.AssignedWorkers / job.OptimalWorkers) - 1.0;
-                double crowdingHazard = 0.01 + Math.Max(0, crowdingRatio * 0.03);
+                // Κανονικοποίηση: Τα Settings αναφέρουν πιθανότητα ανά in-game Λεπτό. 
+                // Αν ο έλεγχος γίνει σε διαφορετικό χρόνο (π.χ. κάθε 10 δευτ.), προσαρμόζουμε το ζάρι.
+                double normalizedHazardPerTick = totalHazard * (InjuryCheckInterval / 60.0);
 
-                // ΣΥΝΟΛΙΚΟΣ ΚΙΝΔΥΝΟΣ ΑΝΑ ΩΡΑ = Εργασία + Συνωστισμός + Καιρός Πόλης
-                double totalHazardPerHour = jobHazard + crowdingHazard + weatherHazard;
-
-                // ΝΕΟ: Κανονικοποίηση (Normalization) του κινδύνου.
-                // Οι πιθανότητες στα Settings (π.χ. 30%) αφορούν 1 ΟΛΟΚΛΗΡΗ ΩΡΑ (3600 in-game δευτερόλεπτα).
-                // Επειδή τρέχουμε τον έλεγχο κάθε 60 δευτερόλεπτα, προσαρμόζουμε την πιθανότητα!
-                // Έτσι, ένα 30% ανά ώρα γίνεται δίκαιο ~0.5% ανά λεπτό.
-                double normalizedHazardPerTick = totalHazardPerHour * (InjuryCheckInterval / 3600.0);
-
-                // Ρίψη ζαριού για κάθε εργάτη
                 int currentWorkers = job.AssignedWorkers;
                 for (int i = 0; i < currentWorkers; i++)
                 {
-                    double roll = rng.NextDouble();
-                    if (roll < normalizedHazardPerTick)
+                    if (rng.NextDouble() < normalizedHazardPerTick)
                     {
-                        // Αν το ζάρι "πιάσει", περνάμε το Base Hazard (totalHazardPerHour) για να δούμε 
-                        // αν ο κίνδυνος ήταν αρκετά μεγάλος για να προκαλέσει θάνατο
-                        ApplyInjury(job, totalHazardPerHour, rng, weatherHazard);
+                        ApplyInjury(job, rng, isWeatherRelated: true);
                     }
                 }
             }
         }
 
-        // ΝΕΑ ΜΕΘΟΔΟΣ: Δυναμικός υπολογισμός βάσει των Thresholds του GameSettings
-        private double CalculateCityWeatherHazard(double cityTemp)
+        private void ApplyInjury(JobOrder job, Random rng, bool isWeatherRelated)
         {
-            if (cityTemp > GameSettings.Instance.CityOverheatThreshold)
-                return GameSettings.Instance.OverheatHazardPenalty; // Θερμοπληξία
-
-            if (cityTemp < GameSettings.Instance.CityDeadlyThreshold)
-                return GameSettings.Instance.DeadlyHazardPenalty;   // -10°C (Ακραίο Ψύχος)
-
-            if (cityTemp < GameSettings.Instance.CityFreezingThreshold)
-                return GameSettings.Instance.FreezingHazardPenalty; // 0°C (Παγετός)
-
-            if (cityTemp < GameSettings.Instance.CityChillyThreshold)
-                return GameSettings.Instance.ChillyHazardPenalty;   // 10°C (Κρύο)
-
-            return 0.0; // Ιδανική Θερμοκρασία (Safe Zone)
-        }
-
-        private double CalculateJobHazard(JobType type, BoilerSubsystem boiler, ThermodynamicsSubsystem thermo, double workshopHazard)
-        {
-            // Αφαιρέσαμε το CityTemperature από εδώ, γιατί το μετράμε πλέον καθολικά (Global)
-            return type switch
-            {
-                JobType.StokeFurnace => 0.01 + (thermo.CoreTemperature > 850 ? 0.10 : 0.0),
-                JobType.MicroBleed => 0.02 + (boiler.SteamPressure > 150 ? 0.08 : 0.0),
-                JobType.StructuralBracing => 0.03 + (boiler.SteamPressure > 180 ? 0.12 : 0.0),
-                JobType.ScourFlues => 0.02 + (boiler.SootFraction * 0.10),
-                JobType.DeepScour => 0.01 + (boiler.SootFraction * 0.05),
-                JobType.DamperThrottling => 0.01,
-                JobType.WorkshopMaintenance => 0.01,
-                JobType.IntensiveCare => 0.005,
-                JobType.WorkshopMachining => 0.02 + workshopHazard,
-                JobType.ManualTinkering => 0.005 + (workshopHazard * 0.5),
-                _ => 0.01
-            };
-        }
-
-        private void ApplyInjury(JobOrder job, double totalHazardScore, Random rng, double weatherHazard)
-        {
-            // Αφαίρεση του εργάτη από την τρέχουσα δουλειά του
             job.AssignedWorkers--;
             HealthyWorkers--;
 
-            // ΝΕΟ: Το ότι ο κίνδυνος είναι υψηλός, δεν σημαίνει ακαριαίο θάνατο. 
-            // Δίνει απλά μια πιθανότητα το ατύχημα/κρύο να είναι ΣΟΒΑΡΟ αντί για απλή ασθένεια.
-            bool isCatastrophic = false;
-
-            if (totalHazardScore > GameSettings.Instance.HazardDeathThreshold)
-            {
-                // Αν περάσει το όριο (π.χ. 0.15), ρίχνουμε ζάρι για να δούμε αν είναι θανατηφόρο/κρίσιμο.
-                // Χρησιμοποιούμε το DeathRollProbability (π.χ. 40% πιθανότητα να είναι όντως καταστροφικό)
-                if (rng.NextDouble() < GameSettings.Instance.DeathRollProbability)
-                {
-                    isCatastrophic = true;
-                }
-            }
+            // Αν η πόλη είναι στο Freezing (Ακραία Παγωνιά), οι αρρώστιες γίνονται θανατηφόρες!
+            bool isCatastrophic = (CurrentCityStage == CityLivingStage.Freezing) && (rng.NextDouble() < GameSettings.Instance.DeathRollProbability);
 
             if (isCatastrophic)
             {
-                // Είναι σοβαρό! Τώρα ρίχνουμε για το αν θα πεθάνει ή θα μπει στην εντατική (Grave)
-                if (rng.NextDouble() < GameSettings.Instance.DeathRollProbability)
+                if (rng.NextDouble() < 0.5) // 50/50 να πεθάνει ή να μπει στην εντατική
                 {
                     DeadWorkers++;
-                    if (weatherHazard >= GameSettings.Instance.DeadlyHazardPenalty)
-                        OnCasualtyOccurred?.Invoke($"ΘΑΝΑΤΗΦΟΡΟ ΨΥΧΟΣ: Ένας εργάτης υπέκυψε στο κρύο (Τμήμα: {job.Type}).");
-                    else
-                        OnCasualtyOccurred?.Invoke($"ΘΑΝΑΤΗΦΟΡΟ ΑΤΥΧΗΜΑ: Ένας εργάτης σκοτώθηκε (Τμήμα: {job.Type}).");
+                    OnCasualtyOccurred?.Invoke($"ΘΑΝΑΤΗΦΟΡΟ ΨΥΧΟΣ: Ένας κάτοικος υπέκυψε στην παγωνιά! (Στάδιο: {CurrentCityStage})");
                 }
                 else
                 {
                     GraveWorkers++;
-                    OnCasualtyOccurred?.Invoke($"ΚΡΙΣΙΜΟΣ ΤΡΑΥΜΑΤΙΣΜΟΣ/ΝΟΣΗΛΕΙΑ: Σοβαρό περιστατικό στο τμήμα: {job.Type}");
+                    OnCasualtyOccurred?.Invoke($"ΚΡΥΟΠΑΓΗΜΑ: Ένας εργάτης μεταφέρθηκε κλινήρης! (Στάδιο: {CurrentCityStage})");
                 }
             }
             else
             {
-                // Το ατύχημα / ασθένεια ήταν ελαφρύ. Πάει στους Sick (Ασθενείς) και θα φανεί στο UI!
                 SickWorkers++;
-
-                if (weatherHazard > 0 && rng.NextDouble() > 0.5)
-                    OnCasualtyOccurred?.Invoke($"ΑΣΘΕΝΕΙΑ: Ένας εργάτης αρρώστησε λόγω του κρύου (Τμήμα: {job.Type}).");
+                if (isWeatherRelated)
+                    OnCasualtyOccurred?.Invoke($"ΑΣΘΕΝΕΙΑ: Ένας εργάτης αρρώστησε λόγω του κρύου.");
                 else
-                    OnCasualtyOccurred?.Invoke($"ΤΡΑΥΜΑΤΙΣΜΟΣ: Ένας εργάτης τραυματίστηκε ελαφρά (Τμήμα: {job.Type}).");
+                    OnCasualtyOccurred?.Invoke($"ΤΡΑΥΜΑΤΙΣΜΟΣ: Ένας εργάτης τραυματίστηκε ελαφρά.");
             }
         }
 
-        public void ProcessOvernightHealing(bool hasIntensiveCareBoost)
+        // Καλείται τη νύχτα (ή στο τέλος της βάρδιας) για ανάρρωση
+        public void ProcessOvernightHealing(bool hasIntensiveCare)
         {
             Random rng = new Random();
-            double healChance = hasIntensiveCareBoost ? GameSettings.Instance.IntensiveCareHealChance : GameSettings.Instance.NormalHealChance;
+
+            // Το ποσοστό ίασης μειώνεται δραματικά αν η πόλη είναι παγωμένη
+            double environmentPenalty = CurrentCityStage switch
+            {
+                CityLivingStage.Freezing => 0.8, // 80% μείωση στην πιθανότητα ίασης!
+                CityLivingStage.Cold => 0.4,
+                CityLivingStage.Comfortable => -0.2, // Bonus ίασης αν είναι ζεστά
+                _ => 0.0
+            };
+
+            double healChance = hasIntensiveCare
+                ? GameSettings.Instance.IntensiveCareHealChance
+                : GameSettings.Instance.NormalHealChance;
+
+            healChance = Math.Clamp(healChance - environmentPenalty, 0.05, 1.0); // Ποτέ κάτω από 5% 
 
             int initialSick = SickWorkers;
             for (int i = 0; i < initialSick; i++)

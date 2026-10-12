@@ -2,146 +2,156 @@ using System;
 
 namespace PermafrostChieftain.Simulation
 {
-    public enum DraftStance
-    {
-        BankedEmbers, // 0.4x burn rate (Χαμηλή συντήρηση)
-        SteadyIdle,   // 1.0x burn rate (Κανονική καύση)
-        ThermalSurge  // 1.8x burn rate (Επιθετική καύση - τεράστια αύξηση πίεσης)
-    }
-
     public class ThermodynamicsSubsystem
     {
-
         public double CoreTemperature { get; private set; }
         public double CityTemperature { get; private set; }
-        public double CurrentAmbientTemperature { get; set; }
-        public double CityHeatBuffer { get; private set; } = 0.0;
 
-        public DraftStance ActiveDraftStance { get; set; } = DraftStance.SteadyIdle;
-        public double HullThermalLeakModifier { get; set; } = 1.0;
+        // Το δίκτυο θέρμανσης της πόλης
+        public double CitySteamBuffer { get; private set; } = 0.0;
+        public double TargetCityTemperature { get; private set; } = GameSettings.Instance.TempStage_Comfortable;
 
-        public ThermodynamicsSubsystem()
+        public void Initialize(double startCoreTemp, double startCityTemp)
         {
-            // Αρχικοποίηση από τα settings όταν ξεκινάει το σύστημα
-            CurrentAmbientTemperature = GameSettings.Instance.AmbientTemperature;
-            CoreTemperature = GameSettings.Instance.StartingCoreTemp;
-            CityTemperature = GameSettings.Instance.StartingCityTemp;
+            CoreTemperature = startCoreTemp;
+            CityTemperature = startCityTemp;
+            CitySteamBuffer = 0.0;
         }
-        // Επιστρέφει την ποσότητα καπνιάς που παρήχθη αυτό το δευτερόλεπτο
-        public double ProcessThermalTick(double deltaTime, double coalBurnedPerSec)
+
+        // Ορίζει τον στόχο της θερμοκρασίας για την πόλη (από το UI)
+        public void SetTargetCityTemperature(double targetTemp)
         {
-            if (coalBurnedPerSec <= 0)
+            TargetCityTemperature = targetTemp;
+        }
+
+        // Τροφοδοτεί το δίκτυο της πόλης με νέο ατμό
+        public void AddSteamToCityBuffer(double steamAmount)
+        {
+            CitySteamBuffer += steamAmount;
+        }
+
+        // =========================================================
+        // ΥΠΟΛΟΓΙΣΤΗΣ ΠΡΟΒΛΕΨΗΣ ΓΙΑ ΤΟ UI (Calculator)
+        // Επιστρέφει πόσες in-game Ώρες θα αντέξει ο ατμός στον στόχο
+        // =========================================================
+        public double CalculateSteamDurationHours(double projectedSteamToAdd, double targetTemp)
+        {
+            double totalSteam = CitySteamBuffer + projectedSteamToAdd;
+            double steamYield = GameSettings.Instance.SteamToCityHeatYield;
+
+            // 1. Πόσος ατμός χρειάζεται για να φτάσουμε στη θερμοκρασία
+            double steamNeededToHeatUp = 0.0;
+            if (CityTemperature < targetTemp)
             {
-                // Φυσική απώλεια θερμοκρασίας αν η φωτιά σβήσει
-                double heatLoss = GameSettings.Instance.InactiveCoolingRate * deltaTime;
-
-                // Εφαρμογή αδράνειας (Thermal Inertia) για να κρυώνει πιο ομαλά
-                heatLoss *= GameSettings.Instance.CoreThermalInertia;
-
-                CoreTemperature = Math.Max(CityTemperature, CoreTemperature - heatLoss);
-                return 0.0;
+                double tempDifference = targetTemp - CityTemperature;
+                steamNeededToHeatUp = tempDifference / steamYield;
             }
 
-            // --- 1. ΥΠΟΛΟΓΙΣΜΟΣ ΑΠΟΔΟΣΗΣ ΚΑΜΙΝΙΟΥ (FURNACE EFFICIENCY) ---
-            // Όταν το καμίνι είναι κρύο, η ενέργεια χάνεται στα μέταλλα. Όταν είναι καυτό, είναι 100% αποδοτικό.
-            double furnaceEfficiency = 1.0;
-            if (CoreTemperature < GameSettings.Instance.OptimalCoreTemp)
+            if (totalSteam <= steamNeededToHeatUp)
             {
-                double deficitRatio = (GameSettings.Instance.OptimalCoreTemp - CoreTemperature) / GameSettings.Instance.OptimalCoreTemp;
-                // Π.χ. αν είναι κρύο (deficitRatio = ~0.8), το efficiency πέφτει στο 52%
-                furnaceEfficiency = 1.0 - (deficitRatio * GameSettings.Instance.ColdFurnaceEfficiencyPenalty);
-                furnaceEfficiency = Math.Max(0.1, furnaceEfficiency); // Ποτέ κάτω από 10% απόδοση
+                return 0.0; // Δεν φτάνει καν για να ζεστάνει την πόλη
             }
 
-            // --- 2. ΠΑΡΑΓΩΓΗ & ΑΠΩΛΕΙΑ ΘΕΡΜΟΤΗΤΑΣ ---
-            double rawHeatGain = coalBurnedPerSec * GameSettings.Instance.HeatGainPerKgCoal;
-            double effectiveHeatGain = (rawHeatGain * furnaceEfficiency) * deltaTime;
+            double remainingSteamForUpkeep = totalSteam - steamNeededToHeatUp;
 
-            double heatLossWorking = (CoreTemperature - CityTemperature) * GameSettings.Instance.AmbientHeatLossRate * deltaTime;
+            // 2. Πόση θερμότητα χάνεται ανά δευτερόλεπτο στον Στόχο (Newton's Law)
+            double targetTempDelta = targetTemp - GameSettings.Instance.AmbientWeatherTemperature;
+            double heatLossPerSec = targetTempDelta * GameSettings.Instance.CityWeatherCoolingCoefficient;
 
-            // --- 3. ΕΦΑΡΜΟΓΗ ΘΕΡΜΙΚΗΣ ΑΔΡΑΝΕΙΑΣ (THERMAL INERTIA) ---
-            // Κάνει την άνοδο και την πτώση της θερμοκρασίας πιο "βαριά" και ρεαλιστική, αποτρέποντας απότομα άλματα
-            double netTempChange = (effectiveHeatGain - heatLossWorking) * GameSettings.Instance.CoreThermalInertia;
+            // 3. Απαίτηση ατμού ανά δευτερόλεπτο για συντήρηση
+            double steamRequiredPerSec = heatLossPerSec / steamYield;
 
-            CoreTemperature = Math.Max(CityTemperature, CoreTemperature + netTempChange);
+            if (steamRequiredPerSec <= 0) return 999.0; // Αν ο καιρός είναι ζεστός (σπάνιο)
 
-            // --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΚΑΠΝΙΑΣ (SMOLDERING PENALTY) ---
-            double generatedSoot = GameSettings.Instance.BaseSootGenerationRate * deltaTime;
+            // 4. Μετατροπή δευτερολέπτων σε Ώρες (In-Game Hours)
+            double durationInSeconds = remainingSteamForUpkeep / steamRequiredPerSec;
+            return durationInSeconds / 3600.0;
+        }
 
-            if (CoreTemperature < GameSettings.Instance.OptimalCoreTemp)
+        // =========================================================
+        // ΚΕΝΤΡΙΚΟΣ ΚΥΚΛΟΣ ΘΕΡΜΟΔΥΝΑΜΙΚΗΣ (Εκτελείται κάθε frame)
+        // =========================================================
+        public double ProcessTick(double deltaTime, double coalBurnedPerSec, int smeltingWorkers, double thermalShock)
+        {
+            if (deltaTime <= 0.0) return 0.0;
+
+            // ---------------------------------------------------------
+            // ΦΑΣΗ 1: ΘΕΡΜΟΔΥΝΑΜΙΚΗ ΤΟΥ ΠΥΡΗΝΑ (CORE)
+            // ---------------------------------------------------------
+            double energyInput = 0.0;
+            if (coalBurnedPerSec > 0)
             {
-                double temperatureDeficit = (GameSettings.Instance.OptimalCoreTemp - CoreTemperature) / GameSettings.Instance.OptimalCoreTemp;
-                double smolderingMultiplier = 1.0 + (temperatureDeficit * GameSettings.Instance.SmolderingSootPenalty);
+                // Ακατέργαστη ενέργεια από το κάρβουνο
+                double rawEnergy = coalBurnedPerSec * GameSettings.Instance.HeatGainPerKgCoal;
 
-                generatedSoot *= smolderingMultiplier;
+                // Απόδοση καμινιού βάσει τρέχουσας θερμοκρασίας (κρύο = χαμηλή απόδοση)
+                double deficitRatio = CoreTemperature < GameSettings.Instance.OptimalCoreTemp
+                    ? (GameSettings.Instance.OptimalCoreTemp - CoreTemperature) / GameSettings.Instance.OptimalCoreTemp
+                    : 0.0;
+                double furnaceEfficiency = Math.Max(0.2, 1.0 - (deficitRatio * 0.5));
+
+                energyInput = rawEnergy * furnaceEfficiency;
             }
 
-            return generatedSoot;
-        }
+            // Νόμος Ψύξης Νεύτωνα: Η απώλεια είναι ανάλογη της διαφοράς θερμοκρασίας
+            double temperatureDelta = CoreTemperature - GameSettings.Instance.AmbientWeatherTemperature;
+            double weatherEnergyLoss = temperatureDelta * GameSettings.Instance.GeneratorWeatherCoolingCoefficient;
 
-        // Υπολογίζει δυναμικά τη θερμοκρασία της πόλης με βάση τη φυσική
-        public void ProcessCityTemperature(double deltaTime, bool isGeneratorActive, double sootFraction)
-        {
-            if (deltaTime <= 0.0) return;
+            // Το χυτήριο ρουφάει ενέργεια
+            double smeltingEnergyLoss = smeltingWorkers * GameSettings.Instance.SmeltingHeatDrainPerWorker;
 
-            // 1. Δύναμη Ψύξης: Απώλεια θερμότητας προς το περιβάλλον
-            double ambientDifferential = CityTemperature - CurrentAmbientTemperature;
-            double coolingRate = ambientDifferential * GameSettings.Instance.CityCoolingCoefficient;
+            // Καθαρή ενέργεια (Q_net)
+            double netEnergy = (energyInput - weatherEnergyLoss - smeltingEnergyLoss);
+            double steamGenerated = 0.0;
 
-            // 2. Δύναμη Θέρμανσης: Ατμός από τη Γεννήτρια
-            double heatingRate = 0.0;
-
-            // Για να θερμανθεί η πόλη, η γεννήτρια πρέπει να λειτουργεί ΚΑΙ να βράζει νερό
-            if (isGeneratorActive && CoreTemperature >= GameSettings.Instance.MinimumHeatingThreshold)
+            // Λανθάνουσα Θερμότητα: Μετατροπή πλεονάσματος σε ατμό αν βράζει το νερό
+            if (netEnergy > 0 && CoreTemperature >= GameSettings.Instance.BoilingPointThreshold)
             {
-                double coreDifferential = Math.Max(0.0, CoreTemperature - CityTemperature);
-                heatingRate = coreDifferential * GameSettings.Instance.CityHeatingCoefficient;
-
-                // Η αιθάλη (Soot) λειτουργεί ως μονωτικό, μειώνοντας την απόδοση μεταφοράς θερμότητας
-                double insulationFactor = 1.0 - (sootFraction * GameSettings.Instance.SootInsulationMultiplier);
-                heatingRate *= Math.Max(0.1, insulationFactor); // Αποτροπή αρνητικής θέρμανσης
+                double energyForSteam = netEnergy * GameSettings.Instance.LatentHeatSteamConversionRatio;
+                netEnergy -= energyForSteam;
+                steamGenerated = energyForSteam * GameSettings.Instance.BaseSteamGenerationRate * deltaTime;
             }
 
-            // 3. Εφαρμογή του τελικού αποτελέσματος (Net Change)
-            double netChange = (heatingRate - coolingRate) * deltaTime;
-            CityTemperature += netChange;
+            // Θερμικό Σοκ: Ακαριαία αφαίρεση λόγω βίαιης αποσυμπίεσης (από Τουρμπίνες)
+            CoreTemperature -= thermalShock;
 
-            // Η πόλη δεν μπορεί να γίνει πιο κρύα από τον εξωτερικό καιρό
-            CityTemperature = Math.Max(CurrentAmbientTemperature, CityTemperature);
+            // Θερμοχωρητικότητα: Αλλαγή θερμοκρασίας βάσει της μάζας του μετάλλου
+            double tempChange = (netEnergy / GameSettings.Instance.CoreThermalMass) * deltaTime;
+            CoreTemperature += tempChange;
 
-            if (CityHeatBuffer > 0)
+            // Δεν μπορεί να πέσει κάτω από τη θερμοκρασία του περιβάλλοντος
+            CoreTemperature = Math.Max(GameSettings.Instance.AmbientWeatherTemperature, CoreTemperature);
+
+            // ---------------------------------------------------------
+            // ΦΑΣΗ 2: ΘΕΡΜΟΔΥΝΑΜΙΚΗ ΤΗΣ ΠΟΛΗΣ (CITY STEAM BUFFER)
+            // ---------------------------------------------------------
+            double cityTempDelta = CityTemperature - GameSettings.Instance.AmbientWeatherTemperature;
+            double naturalHeatLoss = cityTempDelta * GameSettings.Instance.CityWeatherCoolingCoefficient * deltaTime;
+
+            // Αν η πόλη είναι πιο κρύα από τον στόχο ΚΑΙ έχουμε ατμό αποθηκευμένο
+            if (CityTemperature < TargetCityTemperature && CitySteamBuffer > 0)
             {
-                double transferRate = (CityHeatBuffer * 0.05) + GameSettings.Instance.BufferTransferRate;
-                double actualTransfer = Math.Min(CityHeatBuffer, transferRate);
+                // Απαιτούμενη θερμότητα (Αναπλήρωση απώλειας + 10% προσέγγιση στόχου ανά frame)
+                double heatNeeded = naturalHeatLoss + ((TargetCityTemperature - CityTemperature) * 0.1);
+                double steamNeeded = heatNeeded / GameSettings.Instance.SteamToCityHeatYield;
 
-                CityTemperature += actualTransfer;
-                CityHeatBuffer -= actualTransfer;
+                double steamToConsume = Math.Min(steamNeeded, CitySteamBuffer);
+                CitySteamBuffer -= steamToConsume;
+
+                double generatedHeat = steamToConsume * GameSettings.Instance.SteamToCityHeatYield;
+
+                CityTemperature += generatedHeat - naturalHeatLoss;
             }
-        }
+            else
+            {
+                // Αν δεν έχουμε ατμό, η πόλη απλά παγώνει
+                CityTemperature -= naturalHeatLoss;
+            }
 
+            CityTemperature = Math.Max(GameSettings.Instance.AmbientWeatherTemperature, CityTemperature);
 
-        // Θέτει την ακριβή θερμοκρασία του πυρήνα με όριο την ελάχιστη εξωτερική
-        public void SetCoreTemperature(double temp)
-        {
-            CoreTemperature = Math.Max(CurrentAmbientTemperature, temp);
-        }
-
-        // Θέτει την ακριβή θερμοκρασία της πόλης με όριο την *τρέχουσα* εξωτερική
-        public void SetCityTemperature(double temp)
-        {
-            CityTemperature = Math.Max(CurrentAmbientTemperature, temp);
-        }
-        // Καλείται όταν ο παίκτης επιλέγει να στείλει πίεση/ατμό στο City Heating κατά το Vent
-        public void AddCityHeatBuffer(double addedHeat)
-        {
-            CityHeatBuffer += addedHeat;
-        }
-
-        // Άμεση αλλαγή θερμοκρασίας (για emergency events)
-        public void ApplyDirectThermalDelta(double coreDelta, double cityDelta)
-        {
-            CoreTemperature = Math.Clamp(CoreTemperature + coreDelta, CurrentAmbientTemperature, 1200.0);
-            CityHeatBuffer += cityDelta;
+            // Επιστρέφουμε τον ατμό που φτιάχτηκε για να τον πάρει ο Λέβητας (Boiler)
+            return steamGenerated;
         }
     }
 }

@@ -2,89 +2,116 @@ using System;
 
 namespace PermafrostChieftain.Simulation
 {
-    // Τύποι αναλώσιμων αντικειμένων εργαστηρίου
-    public enum ConsumableType
-    {
-        PorcelainFuse, // Ασφάλεια ανακούφισης
-        GraphitePlug,  // Τάπα μολύβδου-γραφίτη
-        MedicalTonic   // Ιατρικό τονωτικό διεγερτικό
-    }
-
-    // Μόνιμες μηχανικές αναβαθμίσεις
-    public enum EngineRetrofit
-    {
-        BypassShuntValve,       // +5s περίοδος χάριτος
-        ReinforcedBoilerStaves, // Αύξηση ορίου πίεσης σε 155 Bar
-        PneumaticCoalFeeders,   // Μείωση βέλτιστου προσωπικού καύσης σε 10
-        CopperRadiatorCoils     // +25% απόδοση θέρμανσης πόλης
-    }
-
     public class LogisticsSubsystem
     {
-        // Αποθέματα πρώτων υλών
-        public double CoalStockpile { get; set; } = 1200.0;    // Άνθρακας (kg)
-        public double ScrapStockpile { get; set; } = 35.0;      // Παλιοσίδερα (units)
-        public double BaseMaxElectricity { get; set; } = 100.0; // Βασική χωρητικότητα
+        // Τα 4 βασικά υλικά της οικονομίας μας
+        public double CoalStockpile { get; private set; }
+        public double RawScrap { get; private set; }
+        public double RefinedMetal { get; private set; }
+        public double Electricity { get; private set; }
 
-        // Αποθέματα αναλωσίμων (μέγιστα όρια αποθήκευσης)
-        public const int MaxFuses = 3;
-        public const int MaxPlugs = 2;
-        public const int MaxTonics = 3;
+        // Γεγονός (Event) για να ανανεώνεται το UI κάθε φορά που αλλάζει ο αριθμός των πόρων
+        public event Action OnResourcesChanged;
 
-        public int StoredFuses { get; set; } = 3;
-        public int StoredPlugs { get; set; } = 0;
-        public int StoredTonics { get; set; } = 0;
-
-
-        // Κατάσταση ενεργής κατασκευής αναλωσίμου
-        public bool IsCrafting { get; private set; } = false;
-        public ConsumableType ActiveCraftItem { get; private set; }
-        public double CraftTimeRemaining { get; private set; } = 0.0;
-
-        public double GetMaxElectricity(InventorySubsystem inventory)
+        public void Initialize()
         {
-            double max = BaseMaxElectricity;
-            if (inventory != null && inventory.GetEquippedItem("Capacitor Batteries") != null)
-            {
-                max += GameSettings.Instance.BatteryCapacityBonus;
-            }
-            return max;
-        }
-        // Έναρξη κατασκευής αναλωσίμου
-        public bool StartCraftingConsumable(ConsumableType item, int reserveHandsAvailable)
-        {
-            if (IsCrafting) return false;
+            // Αντλούμε τα αρχικά ποσά από τα Settings
+            CoalStockpile = GameSettings.Instance.StartingCoal;
+            RawScrap = GameSettings.Instance.StartingRawScrap;
+            RefinedMetal = GameSettings.Instance.StartingRefinedMetal;
+            Electricity = GameSettings.Instance.StartingElectricity;
 
-            switch (item)
-            {
-                case ConsumableType.PorcelainFuse:
-                    if (StoredFuses >= MaxFuses || ScrapStockpile < 4.0 || CoalStockpile < 150.0 || reserveHandsAvailable < 2)
-                        return false;
-                    ScrapStockpile -= 4.0;
-                    CoalStockpile -= 150.0;
-                    CraftTimeRemaining = 7200.0; // 2 ώρες
-                    break;
-
-                case ConsumableType.GraphitePlug:
-                    if (StoredPlugs >= MaxPlugs || ScrapStockpile < 2.0 || reserveHandsAvailable < 1)
-                        return false;
-                    ScrapStockpile -= 2.0;
-                    CraftTimeRemaining = 3600.0; // 1 ώρα
-                    break;
-
-                case ConsumableType.MedicalTonic:
-                    if (StoredTonics >= MaxTonics || ScrapStockpile < 1.0 || CoalStockpile < 50.0 || reserveHandsAvailable < 1)
-                        return false;
-                    ScrapStockpile -= 1.0;
-                    CoalStockpile -= 50.0;
-                    CraftTimeRemaining = 3600.0; // 1 ώρα
-                    break;
-            }
-
-            ActiveCraftItem = item;
-            IsCrafting = true;
-            return true;
+            OnResourcesChanged?.Invoke();
         }
 
+        // =========================================================
+        // ΜΕΘΟΔΟΙ ΠΡΟΣΘΗΚΗΣ ΠΟΡΩΝ (Από το Routing, τα Jobs, κλπ)
+        // =========================================================
+        public void AddCoal(double amount)
+        {
+            if (amount <= 0) return;
+            CoalStockpile += amount;
+            OnResourcesChanged?.Invoke();
+        }
+
+        public void AddRawScrap(double amount)
+        {
+            if (amount <= 0) return;
+            RawScrap += amount;
+            OnResourcesChanged?.Invoke();
+        }
+
+        public void AddRefinedMetal(double amount)
+        {
+            if (amount <= 0) return;
+            RefinedMetal += amount;
+            OnResourcesChanged?.Invoke();
+        }
+
+        public void AddElectricity(double amount)
+        {
+            if (amount <= 0) return;
+            Electricity += amount;
+            OnResourcesChanged?.Invoke();
+        }
+
+        // =========================================================
+        // ΜΕΘΟΔΟΙ ΚΑΤΑΝΑΛΩΣΗΣ ΠΟΡΩΝ (Για Crafting, Λέβητα, Μπαλώματα)
+        // Επιστρέφουν true αν υπήρχε αρκετό υλικό και καταναλώθηκε, αλλιώς false
+        // =========================================================
+        public bool TryConsumeCoal(double amount)
+        {
+            if (CoalStockpile >= amount)
+            {
+                CoalStockpile -= amount;
+                OnResourcesChanged?.Invoke();
+                return true;
+            }
+            // Αν θέλεις η φωτιά να καίει ό,τι έχει μείνει (ακόμα και αν ζητάει 10 και έχεις 5),
+            // αυτό αντιμετωπίζεται στον Orchestrator (θα τραβάει το υπόλοιπο).
+            return false;
+        }
+
+        // Μέθοδος που απλά αδειάζει ό,τι έχει μείνει (χρήσιμο για το κάψιμο κάρβουνου)
+        public double ConsumeUpToCoal(double requestedAmount)
+        {
+            double actualConsumed = Math.Min(requestedAmount, CoalStockpile);
+            CoalStockpile -= actualConsumed;
+            if (actualConsumed > 0) OnResourcesChanged?.Invoke();
+            return actualConsumed;
+        }
+
+        public bool TryConsumeRawScrap(double amount)
+        {
+            if (RawScrap >= amount)
+            {
+                RawScrap -= amount;
+                OnResourcesChanged?.Invoke();
+                return true;
+            }
+            return false;
+        }
+
+        public bool TryConsumeRefinedMetal(double amount)
+        {
+            if (RefinedMetal >= amount)
+            {
+                RefinedMetal -= amount;
+                OnResourcesChanged?.Invoke();
+                return true;
+            }
+            return false;
+        }
+
+        public bool TryConsumeElectricity(double amount)
+        {
+            if (Electricity >= amount)
+            {
+                Electricity -= amount;
+                OnResourcesChanged?.Invoke();
+                return true;
+            }
+            return false;
+        }
     }
 }
