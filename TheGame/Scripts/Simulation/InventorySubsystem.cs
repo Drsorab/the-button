@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PermafrostChieftain.Simulation
 {
@@ -7,12 +8,14 @@ namespace PermafrostChieftain.Simulation
     public class EquipmentItem
     {
         public string Name { get; set; }
-        public double Durability { get; set; } = 100.0; // Ξεκινάει πάντα στο 100%
+        public ItemCategory Category { get; set; } // NEW: Helps UI decide on the Equip button
+        public double Durability { get; set; } = 100.0;
         public bool IsEquipped { get; set; } = false;
 
-        public EquipmentItem(string name)
+        public EquipmentItem(string name, ItemCategory category)
         {
             Name = name;
+            Category = category;
         }
     }
 
@@ -21,10 +24,27 @@ namespace PermafrostChieftain.Simulation
         // Η λίστα με όλα τα αντικείμενα που έχει κατασκευάσει ο παίκτης
         public List<EquipmentItem> Items { get; private set; } = new List<EquipmentItem>();
 
-        // Προσθέτει ένα νέο αντικείμενο στο Inventory όταν ολοκληρωθεί το Crafting
-        public void AddItem(string itemName)
+        public void AddItem(string itemName, ItemCategory category)
         {
-            Items.Add(new EquipmentItem(itemName));
+            Items.Add(new EquipmentItem(itemName, category));
+        }
+
+        // Returns count of consumable items (e.g., checking if we have enough Metal Patches)
+        public int GetConsumableCount(string itemName)
+        {
+            return Items.Count(i => i.Name == itemName);
+        }
+
+        // Consumes a consumable item (removes it from the list completely)
+        public bool TryConsumeItem(string itemName)
+        {
+            var item = Items.FirstOrDefault(i => i.Name == itemName && i.Category == ItemCategory.Consumable);
+            if (item != null)
+            {
+                Items.Remove(item);
+                return true;
+            }
+            return false;
         }
 
         // Εξοπλίζει ένα συγκεκριμένο αντικείμενο (αν ο παίκτης έχει πολλαπλά, εξοπλίζει το πρώτο διαθέσιμο)

@@ -18,7 +18,7 @@ namespace PermafrostChieftain.Simulation
         public double TwilightDuration => GameSettings.Instance.TwilightDuration;
         public double VentModalTimeout => GameSettings.Instance.VentModalTimeout;      // Time allowed to make a choice in the modal
         public double NightDuration => GameSettings.Instance.NightDuration;      // 16 hours
-
+        public bool IsDayShift => CurrentPhase != CyclePhase.NightBleed;
         public double CurrentTimeOfDaySeconds { get; private set; } = 28800.0; // Starts at 08:00
         public double PhaseElapsedSeconds { get; private set; } = 0.0;
 
@@ -143,6 +143,24 @@ namespace PermafrostChieftain.Simulation
         {
             if (CurrentPhase != CyclePhase.DayActive) return 0.0;
             return Math.Max(0.0, ActiveCycleDuration - PhaseElapsedSeconds);
+        }
+
+        public void SetCosmeticTimeOfDay(TimeSpan newTime)
+        {
+            CurrentTimeOfDaySeconds = newTime.TotalSeconds;
+        }
+
+
+        public void StartAtMiddleOfDay()
+        {
+            // 1. Βάζουμε το παιχνίδι στην τελευταία φάση της ημέρας
+            CurrentPhase = CyclePhase.TwilightWindDown;
+            ActiveCyclesCompletedToday = 4;
+
+            // 2. Η φάση TwilightWindDown διαρκεί 48 λεπτά (2880 δευτερόλεπτα).
+            // Θέλουμε να αφήσουμε 45 λεπτά (2700 δευτερόλεπτα) στον παίκτη.
+            // Επομένως, έχουν περάσει 3 λεπτά (180 δευτερόλεπτα) ΑΠΟ ΤΗΝ ΕΝΑΡΞΗ ΑΥΤΗΣ ΤΗΣ ΦΑΣΗΣ.
+            PhaseElapsedSeconds = 180.0;
         }
     }
 }

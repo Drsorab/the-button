@@ -70,8 +70,9 @@ namespace PermafrostChieftain.Simulation
 
         // =========================================================
         // ΚΕΝΤΡΙΚΟΣ ΚΥΚΛΟΣ ΘΕΡΜΟΔΥΝΑΜΙΚΗΣ (Εκτελείται κάθε frame)
+        // ΝΕΟ: Προστέθηκε το BoilerSubsystem στις παραμέτρους για να διαβάζει την καπνιά!
         // =========================================================
-        public double ProcessTick(double deltaTime, double coalBurnedPerSec, int smeltingWorkers, double thermalShock)
+        public double ProcessTick(double deltaTime, double coalBurnedPerSec, int smeltingWorkers, double thermalShock, BoilerSubsystem boiler)
         {
             if (deltaTime <= 0.0) return 0.0;
 
@@ -89,6 +90,10 @@ namespace PermafrostChieftain.Simulation
                     ? (GameSettings.Instance.OptimalCoreTemp - CoreTemperature) / GameSettings.Instance.OptimalCoreTemp
                     : 0.0;
                 double furnaceEfficiency = Math.Max(0.2, 1.0 - (deficitRatio * 0.5));
+
+                // ΝΕΟ: Πέναλτι απόδοσης λόγω Καπνιάς (Soot Penalty)
+                double sootEfficiencyPenalty = boiler.SootRatio * GameSettings.Instance.SootPenalty_FurnaceEfficiencyLoss;
+                furnaceEfficiency = Math.Max(0.1, furnaceEfficiency - sootEfficiencyPenalty); // Δεν πέφτει κάτω από 10%
 
                 energyInput = rawEnergy * furnaceEfficiency;
             }

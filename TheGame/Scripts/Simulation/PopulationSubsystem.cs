@@ -96,7 +96,7 @@ namespace PermafrostChieftain.Simulation
         {
             Random rng = new Random();
 
-            // Η πιθανότητα ασθένειας ανά λεπτό, ανάλογα με το Στάδιο Διαβίωσης
+            // Βασική πιθανότητα ασθένειας από το κρύο
             double citySicknessRate = CurrentCityStage switch
             {
                 CityLivingStage.Comfortable => GameSettings.Instance.SicknessRate_Comfortable,
@@ -107,17 +107,17 @@ namespace PermafrostChieftain.Simulation
                 _ => 0.0
             };
 
+            // ΝΕΟ: Υπολογισμός του Safety Bonus από το Workshop Upkeep
+            int upkeepWorkers = _jobManager.Jobs.ContainsKey(JobType.WorkshopUpkeep) ? _jobManager.Jobs[JobType.WorkshopUpkeep].AssignedWorkers : 0;
+            double safetyBonus = Math.Min(GameSettings.Instance.MaxUpkeepSafetyBonus, upkeepWorkers * GameSettings.Instance.UpkeepSafetyBonusPerWorker);
+
+            // Μειώνουμε τον κίνδυνο βάσει του Bonus
+            double mitigatedHazard = citySicknessRate * (1.0 - safetyBonus);
+            double normalizedHazardPerTick = mitigatedHazard * (InjuryCheckInterval / 60.0);
+
             foreach (var job in _jobManager.Jobs.Values)
             {
                 if (job.AssignedWorkers <= 0) continue;
-
-                // (Στη Φάση 5 θα προσθέσουμε και τους κινδύνους της κάθε εργασίας - Job Hazards.
-                // Προς το παρόν επικεντρωνόμαστε στον κύριο εχθρό: Το Κρύο)
-                double totalHazard = citySicknessRate;
-
-                // Κανονικοποίηση: Τα Settings αναφέρουν πιθανότητα ανά in-game Λεπτό. 
-                // Αν ο έλεγχος γίνει σε διαφορετικό χρόνο (π.χ. κάθε 10 δευτ.), προσαρμόζουμε το ζάρι.
-                double normalizedHazardPerTick = totalHazard * (InjuryCheckInterval / 60.0);
 
                 int currentWorkers = job.AssignedWorkers;
                 for (int i = 0; i < currentWorkers; i++)

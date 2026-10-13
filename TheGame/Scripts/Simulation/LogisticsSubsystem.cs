@@ -10,6 +10,11 @@ namespace PermafrostChieftain.Simulation
         public double RefinedMetal { get; private set; }
         public double Electricity { get; private set; }
 
+        public int AvailableFuses { get; private set; }
+
+        // Το τελικό αντικείμενο για το μπάλωμα της γεννήτριας
+        public int CraftedMetalPatches { get; private set; }
+
         // Γεγονός (Event) για να ανανεώνεται το UI κάθε φορά που αλλάζει ο αριθμός των πόρων
         public event Action OnResourcesChanged;
 
@@ -20,7 +25,7 @@ namespace PermafrostChieftain.Simulation
             RawScrap = GameSettings.Instance.StartingRawScrap;
             RefinedMetal = GameSettings.Instance.StartingRefinedMetal;
             Electricity = GameSettings.Instance.StartingElectricity;
-
+            AvailableFuses = 0;
             OnResourcesChanged?.Invoke();
         }
 
@@ -108,6 +113,44 @@ namespace PermafrostChieftain.Simulation
             if (Electricity >= amount)
             {
                 Electricity -= amount;
+                OnResourcesChanged?.Invoke();
+                return true;
+            }
+            return false;
+        }
+
+        public void AddMetalPatch(int amount)
+        {
+            if (amount <= 0) return;
+            CraftedMetalPatches += amount;
+            OnResourcesChanged?.Invoke();
+        }
+
+        public bool TryConsumeMetalPatch(int amount)
+        {
+            if (CraftedMetalPatches >= amount)
+            {
+                CraftedMetalPatches -= amount;
+                OnResourcesChanged?.Invoke();
+                return true;
+            }
+            return false;
+        }
+
+        public void AddFuse()
+        {
+            if (AvailableFuses < GameSettings.Instance.MaxFuses)
+            {
+                AvailableFuses++;
+                OnResourcesChanged?.Invoke();
+            }
+        }
+
+        public bool TryConsumeFuse()
+        {
+            if (AvailableFuses > 0)
+            {
+                AvailableFuses--;
                 OnResourcesChanged?.Invoke();
                 return true;
             }

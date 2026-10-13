@@ -7,9 +7,10 @@ namespace PermafrostChieftain.Simulation
         public double SteamPressure { get; private set; }
         public double CasingIntegrity { get; private set; } = 100.0;
         public double StressLevel { get; private set; } = 0.0;
-
         public bool IsHullCracked { get; private set; } = false;
-
+        public double CurrentSoot { get; private set; } = 0.0;
+        // Υπολογίζει το ποσοστό (0.0 έως 1.0) της καπνιάς για να εφαρμόσει τα πέναλτι
+        public double SootRatio => Math.Clamp(CurrentSoot / GameSettings.Instance.MaxSootCapacity, 0.0, 1.0);
         // Αντί για επίπεδο ρυθμό διαρροής, κρατάμε το *Μέγεθος του Ρήγματος* (Crack Area)
         public double CrackSizeArea { get; private set; } = 0.0;
 
@@ -52,9 +53,12 @@ namespace PermafrostChieftain.Simulation
             // =========================================================
             if (SteamPressure > safePressure)
             {
-                // Η πίεση είναι πάνω από το όριο. Το στρες είναι ανάλογο της υπερπίεσης.
                 double overpressure = SteamPressure - safePressure;
-                StressLevel += overpressure * GameSettings.Instance.StressAccumulationPerOverpressure * deltaTime;
+
+                // Εφαρμογή πολλαπλασιαστή Στρες λόγω καπνιάς (Option B)
+                double sootStressMultiplier = 1.0 + (SootRatio * (GameSettings.Instance.SootPenalty_StressAccumulationMultiplier - 1.0));
+
+                StressLevel += overpressure * GameSettings.Instance.StressAccumulationPerOverpressure * sootStressMultiplier * deltaTime;
             }
             else if (StressLevel > 0)
             {
@@ -145,6 +149,28 @@ namespace PermafrostChieftain.Simulation
         public void RepairIntegrity(double amount)
         {
             CasingIntegrity = Math.Min(100.0, CasingIntegrity + amount);
+        }
+
+        // Καλείται από τον Orchestrator όταν καίγεται κάρβουνο
+        public void AddSoot(double coalBurned)
+        {
+            CurrentSoot = Math.Min(GameSettings.Instance.MaxSootCapacity, CurrentSoot + (coalBurned * GameSettings.Instance.SootAccumulationPerKgCoal));
+        }
+
+        // Καλείται από το JobManager όταν ολοκληρώνεται το καθάρισμα
+        public void RemoveSoot(double amount)
+        {
+            CurrentSoot = Math.Max(0.0, CurrentSoot - amount);
+        }
+        // Καλείται ΜΟΝΟ από το Cold Start σενάριο (ή από ειδικά in-game events)
+        public void ForceHullCrack()
+        {
+            if (!IsHullCracked)
+            {
+                IsHullCracked = true;
+                CrackSizeArea = GameSettings.Instance.InitialCrackLeakRate;
+                OnBoilerAlert?.Invoke("ΚΑΤΑΣΤΡΟΦΙΚΗ ΑΣΤΟΧΙΑ: Ρήγμα στο κέλυφος! Ανεξέλεγκτη διαρροή ατμού!");
+            }
         }
     }
 }

@@ -2,9 +2,10 @@
 
 [ext_resource type="Script" uid="uid://cu02cqp4378fq" path="res://TheGame/Scripts/Orchestration/GameOrchestrator.cs" id="1_s7b7n"]
 [ext_resource type="Script" uid="uid://3vxvq8k6yko3" path="res://TheGame/Scripts/Orchestration/UIOrchestrator.cs" id="2_gowdg"]
-[ext_resource type="Script" uid="uid://ofqln5peht5l" path="res://TheGame/Scripts/Orchestration/AcousticDrillController.cs" id="3_wquia"]
 [ext_resource type="Script" uid="uid://p0ka83xestg8" path="res://TheGame/Scripts/Orchestration/ShiftDebriefController.cs" id="4_1ktnu"]
 [ext_resource type="Script" uid="uid://boay754t2jm72" path="res://TheGame/Scripts/UI/AdminPanelController.cs" id="5_gowdg"]
+[ext_resource type="Script" uid="uid://cjximmyx5kgiq" path="res://TheGame/Scripts/Simulation/WorkshopCraftingModal.cs" id="5_wquia"]
+[ext_resource type="Script" uid="uid://gxho6uctqaa8" path="res://TheGame/Scripts/Simulation/InventoryModal.cs" id="6_1ktnu"]
 
 [node name="TheGame" type="CanvasLayer" unique_id=185553622]
 script = ExtResource("1_s7b7n")
@@ -49,10 +50,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "CYCLE: 00:00"
 
-[node name="ShiftCountdownLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/PersistentChronometerPanel/ChronoVBox/MasterClockHBox" unique_id=1954287887]
+[node name="NextVentCountdownLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/PersistentChronometerPanel/ChronoVBox/MasterClockHBox" unique_id=1954287887]
 layout_mode = 2
 theme_override_font_sizes/font_size = 38
 text = "NIXIE: 3600.0s"
+
+[node name="CurrentPhaseLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/PersistentChronometerPanel/ChronoVBox/MasterClockHBox" unique_id=1835259462]
+layout_mode = 2
 
 [node name="ShiftSchedulerVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/PersistentChronometerPanel/ChronoVBox" unique_id=1207947206]
 layout_mode = 2
@@ -130,7 +134,23 @@ size_flags_horizontal = 3
 max_value = 200.0
 value = 80.0
 
+[node name="StressRowHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBoilerStatusPanel/BoilerVBox" unique_id=1419188911]
+layout_mode = 2
+
+[node name="StressTitleLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBoilerStatusPanel/BoilerVBox/StressRowHBox" unique_id=1049761108]
+layout_mode = 2
+text = "STRESS 0%"
+
+[node name="StressGaugeBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBoilerStatusPanel/BoilerVBox/StressRowHBox" unique_id=1401170222]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
 [node name="CasingRowHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBoilerStatusPanel/BoilerVBox" unique_id=97430121]
+layout_mode = 2
+
+[node name="HullCrackAlertIcon" type="TextureRect" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBoilerStatusPanel/BoilerVBox/CasingRowHBox" unique_id=1490027392]
 layout_mode = 2
 
 [node name="CasingTitleLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBoilerStatusPanel/BoilerVBox/CasingRowHBox" unique_id=1515605551]
@@ -155,11 +175,6 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 size_flags_horizontal = 3
 show_percentage = false
-
-[node name="BlowoutButton" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/PersistentBoilerStatusPanel/BoilerVBox/SootRowHBox" unique_id=963641204]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "[BLOWOUT]"
 
 [node name="PersistentHeaderPanel" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack" unique_id=1024086021]
 layout_mode = 2
@@ -290,6 +305,135 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "+"
 
+[node name="Job_CoalMining" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox" unique_id=1041483873]
+layout_mode = 2
+
+[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CoalMining" unique_id=1985267236]
+layout_mode = 2
+
+[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CoalMining/JobVBox" unique_id=2072435241]
+layout_mode = 2
+
+[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CoalMining/JobVBox/HeaderHBox" unique_id=530303566]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Job_CoalMining"
+
+[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CoalMining/JobVBox/HeaderHBox" unique_id=436525876]
+layout_mode = 2
+text = "[SAFE]"
+
+[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CoalMining/JobVBox" unique_id=1525442348]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+show_percentage = false
+
+[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CoalMining/JobVBox" unique_id=181846651]
+layout_mode = 2
+
+[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CoalMining/JobVBox/StaffingHBox" unique_id=2128015037]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "-"
+
+[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CoalMining/JobVBox/StaffingHBox" unique_id=1407144077]
+layout_mode = 2
+size_flags_horizontal = 6
+text = "0 / 15 Hands"
+
+[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CoalMining/JobVBox/StaffingHBox" unique_id=801733666]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "+"
+
+[node name="Job_ScrapScavenging" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox" unique_id=1393771044]
+layout_mode = 2
+
+[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScrapScavenging" unique_id=638192408]
+layout_mode = 2
+
+[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScrapScavenging/JobVBox" unique_id=1706407978]
+layout_mode = 2
+
+[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScrapScavenging/JobVBox/HeaderHBox" unique_id=1495439840]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Job_ScrapScavenging"
+
+[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScrapScavenging/JobVBox/HeaderHBox" unique_id=795435955]
+layout_mode = 2
+text = "[SAFE]"
+
+[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScrapScavenging/JobVBox" unique_id=2099559728]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+show_percentage = false
+
+[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScrapScavenging/JobVBox" unique_id=1581268819]
+layout_mode = 2
+
+[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScrapScavenging/JobVBox/StaffingHBox" unique_id=1439457441]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "-"
+
+[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScrapScavenging/JobVBox/StaffingHBox" unique_id=248807480]
+layout_mode = 2
+size_flags_horizontal = 6
+text = "0 / 15 Hands"
+
+[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScrapScavenging/JobVBox/StaffingHBox" unique_id=609395829]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "+"
+
+[node name="Job_OperateTurbines" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox" unique_id=882706561]
+layout_mode = 2
+
+[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_OperateTurbines" unique_id=1423072136]
+layout_mode = 2
+
+[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_OperateTurbines/JobVBox" unique_id=2075514292]
+layout_mode = 2
+
+[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_OperateTurbines/JobVBox/HeaderHBox" unique_id=534278151]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Job_OperateTurbines"
+
+[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_OperateTurbines/JobVBox/HeaderHBox" unique_id=1799682864]
+layout_mode = 2
+text = "[SAFE]"
+
+[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_OperateTurbines/JobVBox" unique_id=1812514058]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+show_percentage = false
+
+[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_OperateTurbines/JobVBox" unique_id=1599881919]
+layout_mode = 2
+
+[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_OperateTurbines/JobVBox/StaffingHBox" unique_id=2063928895]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "-"
+
+[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_OperateTurbines/JobVBox/StaffingHBox" unique_id=389851248]
+layout_mode = 2
+size_flags_horizontal = 6
+text = "0 / 15 Hands"
+
+[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_OperateTurbines/JobVBox/StaffingHBox" unique_id=154988134]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "+"
+
 [node name="Job_WorkshopMachining" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox" unique_id=1574651206]
 layout_mode = 2
 
@@ -299,13 +443,11 @@ layout_mode = 2
 [node name="RecipeDropdown" type="OptionButton" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_WorkshopMachining/JobVBox" unique_id=1177100596]
 layout_mode = 2
 selected = 0
-item_count = 3
+item_count = 2
 popup/item_0/text = "Fuse"
 popup/item_0/id = 0
-popup/item_1/text = "Hull Patch"
+popup/item_1/text = "Metal Patch"
 popup/item_1/id = 1
-popup/item_2/text = "Medical Tonic"
-popup/item_2/id = 2
 
 [node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_WorkshopMachining/JobVBox" unique_id=1522772696]
 layout_mode = 2
@@ -344,163 +486,91 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "+"
 
-[node name="Job_MicroBleed" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox" unique_id=644401501]
+[node name="Job_DaytimePatch" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox" unique_id=709319363]
 layout_mode = 2
 
-[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed" unique_id=77268455]
+[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_DaytimePatch" unique_id=1788037750]
 layout_mode = 2
 
-[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed/JobVBox" unique_id=408064417]
+[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_DaytimePatch/JobVBox" unique_id=701587613]
 layout_mode = 2
 
-[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed/JobVBox/HeaderHBox" unique_id=1314566061]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Job_MicroBleed"
-
-[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed/JobVBox/HeaderHBox" unique_id=351331478]
-layout_mode = 2
-text = "[SAFE]"
-
-[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed/JobVBox" unique_id=296982476]
-custom_minimum_size = Vector2(0, 16)
-layout_mode = 2
-show_percentage = false
-
-[node name="TargetDropdown" type="OptionButton" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed/JobVBox" unique_id=1941913165]
-layout_mode = 2
-selected = 0
-item_count = 4
-popup/item_0/text = "Atmosphere"
-popup/item_0/id = 0
-popup/item_1/text = "City Heat"
-popup/item_1/id = 1
-popup/item_2/text = "Subterranean Drill"
-popup/item_2/id = 2
-popup/item_3/text = "Workshop"
-popup/item_3/id = 3
-
-[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed/JobVBox" unique_id=1806067977]
-layout_mode = 2
-
-[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed/JobVBox/StaffingHBox" unique_id=1902528051]
-custom_minimum_size = Vector2(48, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "-"
-
-[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed/JobVBox/StaffingHBox" unique_id=709871822]
-layout_mode = 2
-size_flags_horizontal = 6
-text = "0 / 15 Hands"
-
-[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_MicroBleed/JobVBox/StaffingHBox" unique_id=2108292539]
-custom_minimum_size = Vector2(48, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "+"
-
-[node name="Job_HullBracing" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox" unique_id=709319363]
-layout_mode = 2
-
-[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_HullBracing" unique_id=1788037750]
-layout_mode = 2
-
-[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_HullBracing/JobVBox" unique_id=701587613]
-layout_mode = 2
-
-[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_HullBracing/JobVBox/HeaderHBox" unique_id=1453301144]
+[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_DaytimePatch/JobVBox/HeaderHBox" unique_id=1453301144]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Job_HullBracing"
 
-[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_HullBracing/JobVBox/HeaderHBox" unique_id=461186936]
+[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_DaytimePatch/JobVBox/HeaderHBox" unique_id=461186936]
 layout_mode = 2
 text = "[SAFE]"
 
-[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_HullBracing/JobVBox" unique_id=1714014697]
+[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_DaytimePatch/JobVBox" unique_id=1714014697]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 show_percentage = false
 
-[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_HullBracing/JobVBox" unique_id=843865828]
+[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_DaytimePatch/JobVBox" unique_id=843865828]
 layout_mode = 2
 
-[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_HullBracing/JobVBox/StaffingHBox" unique_id=1572110474]
+[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_DaytimePatch/JobVBox/StaffingHBox" unique_id=1572110474]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "-"
 
-[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_HullBracing/JobVBox/StaffingHBox" unique_id=408320967]
+[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_DaytimePatch/JobVBox/StaffingHBox" unique_id=408320967]
 layout_mode = 2
 size_flags_horizontal = 6
 text = "0 / 15 Hands"
 
-[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_HullBracing/JobVBox/StaffingHBox" unique_id=1678579083]
+[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_DaytimePatch/JobVBox/StaffingHBox" unique_id=1678579083]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "+"
 
-[node name="Job_ScourFlues" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox" unique_id=401261740]
+[node name="Job_CleanSoot" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox" unique_id=401261740]
 layout_mode = 2
 
-[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScourFlues" unique_id=976792580]
+[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CleanSoot" unique_id=976792580]
 layout_mode = 2
 
-[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScourFlues/JobVBox" unique_id=1102783434]
+[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CleanSoot/JobVBox" unique_id=1102783434]
 layout_mode = 2
 
-[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScourFlues/JobVBox/HeaderHBox" unique_id=89041171]
+[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CleanSoot/JobVBox/HeaderHBox" unique_id=89041171]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Job_ScourFlues"
+text = "Job_CleanSoot"
 
-[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScourFlues/JobVBox/HeaderHBox" unique_id=63669321]
+[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CleanSoot/JobVBox/HeaderHBox" unique_id=63669321]
 layout_mode = 2
 text = "[SAFE]"
 
-[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScourFlues/JobVBox" unique_id=294540420]
+[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CleanSoot/JobVBox" unique_id=294540420]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 show_percentage = false
 
-[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScourFlues/JobVBox" unique_id=1006876424]
+[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CleanSoot/JobVBox" unique_id=1006876424]
 layout_mode = 2
 
-[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScourFlues/JobVBox/StaffingHBox" unique_id=502765775]
+[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CleanSoot/JobVBox/StaffingHBox" unique_id=502765775]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "-"
 
-[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScourFlues/JobVBox/StaffingHBox" unique_id=1396228869]
+[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CleanSoot/JobVBox/StaffingHBox" unique_id=1396228869]
 layout_mode = 2
 size_flags_horizontal = 6
 text = "0 / 15 Hands"
 
-[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_ScourFlues/JobVBox/StaffingHBox" unique_id=1850884457]
+[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/LaborAllocationCard/LaborVBox/Job_CleanSoot/JobVBox/StaffingHBox" unique_id=1850884457]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "+"
-
-[node name="OverdriveCard" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox" unique_id=919469320]
-layout_mode = 2
-
-[node name="OverdriveVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/OverdriveCard" unique_id=1554411270]
-layout_mode = 2
-
-[node name="OverdriveToggle" type="CheckButton" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/OverdriveCard/OverdriveVBox" unique_id=1010155097]
-custom_minimum_size = Vector2(0, 60)
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "HOT-WELD OVERDRIVE [INACTIVE]"
-
-[node name="ThermalStressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/DayShiftScroll/DayVBox/OverdriveCard/OverdriveVBox" unique_id=1623961871]
-custom_minimum_size = Vector2(0, 24)
-layout_mode = 2
 
 [node name="NightShiftScroll" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea" unique_id=2128347229]
 visible = false
@@ -581,184 +651,139 @@ text = "DEPLOY ACOUSTIC DRILL RIG (10 kg Coal)"
 [node name="NightJobsVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox" unique_id=351929012]
 layout_mode = 2
 
-[node name="Job_DamperThrottling" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox" unique_id=2029645890]
+[node name="Job_NightHullRepair" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox" unique_id=1049954452]
 layout_mode = 2
 
-[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DamperThrottling" unique_id=294048411]
+[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightHullRepair" unique_id=1476890402]
 layout_mode = 2
 
-[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DamperThrottling/JobVBox" unique_id=1552358889]
+[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightHullRepair/JobVBox" unique_id=1340996679]
 layout_mode = 2
 
-[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DamperThrottling/JobVBox/HeaderHBox" unique_id=1185081727]
+[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightHullRepair/JobVBox/HeaderHBox" unique_id=1906454843]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "DamperThrottling"
+text = "JobType.NightHullRepair"
 
-[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DamperThrottling/JobVBox/HeaderHBox" unique_id=1714959929]
+[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightHullRepair/JobVBox/HeaderHBox" unique_id=1969081837]
 layout_mode = 2
 text = "[SAFE]"
 
-[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DamperThrottling/JobVBox" unique_id=1489559725]
+[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightHullRepair/JobVBox" unique_id=1112796869]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 show_percentage = false
 
-[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DamperThrottling/JobVBox" unique_id=1093053005]
+[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightHullRepair/JobVBox" unique_id=1783639393]
 layout_mode = 2
 
-[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DamperThrottling/JobVBox/StaffingHBox" unique_id=1935542237]
+[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightHullRepair/JobVBox/StaffingHBox" unique_id=1256497820]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "-"
 
-[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DamperThrottling/JobVBox/StaffingHBox" unique_id=761863021]
+[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightHullRepair/JobVBox/StaffingHBox" unique_id=452009146]
 layout_mode = 2
 size_flags_horizontal = 6
 text = "0 / 15 Hands"
 
-[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DamperThrottling/JobVBox/StaffingHBox" unique_id=1915319693]
+[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightHullRepair/JobVBox/StaffingHBox" unique_id=1743604488]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "+"
 
-[node name="Job_DeepScour" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox" unique_id=1049954452]
+[node name="Job_WorkshopUpkeep" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox" unique_id=1757662677]
 layout_mode = 2
 
-[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DeepScour" unique_id=1476890402]
+[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopUpkeep" unique_id=736805296]
 layout_mode = 2
 
-[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DeepScour/JobVBox" unique_id=1340996679]
+[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopUpkeep/JobVBox" unique_id=1182790483]
 layout_mode = 2
 
-[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DeepScour/JobVBox/HeaderHBox" unique_id=1906454843]
+[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopUpkeep/JobVBox/HeaderHBox" unique_id=746366992]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Job_DeepScour"
+text = "Job_WorkshopUpkeep"
 
-[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DeepScour/JobVBox/HeaderHBox" unique_id=1969081837]
+[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopUpkeep/JobVBox/HeaderHBox" unique_id=1468690594]
 layout_mode = 2
 text = "[SAFE]"
 
-[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DeepScour/JobVBox" unique_id=1112796869]
+[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopUpkeep/JobVBox" unique_id=1089079957]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 show_percentage = false
 
-[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DeepScour/JobVBox" unique_id=1783639393]
+[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopUpkeep/JobVBox" unique_id=1780795087]
 layout_mode = 2
 
-[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DeepScour/JobVBox/StaffingHBox" unique_id=1256497820]
+[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopUpkeep/JobVBox/StaffingHBox" unique_id=1464508034]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "-"
 
-[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DeepScour/JobVBox/StaffingHBox" unique_id=452009146]
+[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopUpkeep/JobVBox/StaffingHBox" unique_id=1691362633]
 layout_mode = 2
 size_flags_horizontal = 6
 text = "0 / 15 Hands"
 
-[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_DeepScour/JobVBox/StaffingHBox" unique_id=1743604488]
+[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopUpkeep/JobVBox/StaffingHBox" unique_id=1900651956]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "+"
 
-[node name="Job_WorkshopMaint" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox" unique_id=1757662677]
+[node name="Job_NightCrafting" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox" unique_id=25125233]
 layout_mode = 2
 
-[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopMaint" unique_id=736805296]
+[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting" unique_id=1063686906]
 layout_mode = 2
 
-[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopMaint/JobVBox" unique_id=1182790483]
-layout_mode = 2
-
-[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopMaint/JobVBox/HeaderHBox" unique_id=746366992]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Job_WorkshopMaint"
-
-[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopMaint/JobVBox/HeaderHBox" unique_id=1468690594]
-layout_mode = 2
-text = "[SAFE]"
-
-[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopMaint/JobVBox" unique_id=1089079957]
-custom_minimum_size = Vector2(0, 16)
-layout_mode = 2
-show_percentage = false
-
-[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopMaint/JobVBox" unique_id=1780795087]
-layout_mode = 2
-
-[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopMaint/JobVBox/StaffingHBox" unique_id=1464508034]
-custom_minimum_size = Vector2(48, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "-"
-
-[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopMaint/JobVBox/StaffingHBox" unique_id=1691362633]
-layout_mode = 2
-size_flags_horizontal = 6
-text = "0 / 15 Hands"
-
-[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_WorkshopMaint/JobVBox/StaffingHBox" unique_id=1900651956]
-custom_minimum_size = Vector2(48, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "+"
-
-[node name="Job_ManualTinkering" type="PanelContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox" unique_id=25125233]
-layout_mode = 2
-
-[node name="JobVBox" type="VBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering" unique_id=1063686906]
-layout_mode = 2
-
-[node name="RecipeDropdown" type="OptionButton" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering/JobVBox" unique_id=767365977]
+[node name="RecipeDropdown" type="OptionButton" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting/JobVBox" unique_id=767365977]
 layout_mode = 2
 selected = 0
-item_count = 3
+item_count = 2
 popup/item_0/text = "Fuse"
 popup/item_0/id = 0
-popup/item_1/text = "Hull Patch"
+popup/item_1/text = "Metal Patch"
 popup/item_1/id = 1
-popup/item_2/text = "Medical Tonic"
-popup/item_2/id = 2
 
-[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering/JobVBox" unique_id=1865067718]
+[node name="HeaderHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting/JobVBox" unique_id=1865067718]
 layout_mode = 2
 
-[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering/JobVBox/HeaderHBox" unique_id=226333424]
+[node name="JobNameLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting/JobVBox/HeaderHBox" unique_id=226333424]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Manual Tinkering"
 
-[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering/JobVBox/HeaderHBox" unique_id=1094779743]
+[node name="HazardLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting/JobVBox/HeaderHBox" unique_id=1094779743]
 layout_mode = 2
 text = "[SAFE]"
 
-[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering/JobVBox" unique_id=166404768]
+[node name="JobProgressBar" type="ProgressBar" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting/JobVBox" unique_id=166404768]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 show_percentage = false
 
-[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering/JobVBox" unique_id=1905349717]
+[node name="StaffingHBox" type="HBoxContainer" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting/JobVBox" unique_id=1905349717]
 layout_mode = 2
 
-[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering/JobVBox/StaffingHBox" unique_id=964657544]
+[node name="MinusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting/JobVBox/StaffingHBox" unique_id=964657544]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "-"
 
-[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering/JobVBox/StaffingHBox" unique_id=1114031449]
+[node name="StaffingLabel" type="Label" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting/JobVBox/StaffingHBox" unique_id=1114031449]
 layout_mode = 2
 size_flags_horizontal = 6
 text = "0 / 15 Hands"
 
-[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_ManualTinkering/JobVBox/StaffingHBox" unique_id=1876503385]
+[node name="PlusBtn" type="Button" parent="MainLayout/ScreenMargin/VerticalStack/MainViewportArea/NightShiftScroll/NightVBox/NightJobsVBox/Job_NightCrafting/JobVBox/StaffingHBox" unique_id=1876503385]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
@@ -893,96 +918,36 @@ current_tab = 0
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="BoilerTelemetryTab" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer" unique_id=133085526]
+[node name="ThermodynamicsTab" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer" unique_id=133085526]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 
-[node name="SettlementHabitatTab" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer" unique_id=1488682486]
+[node name="CityHeatingTab" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer" unique_id=1488682486]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer" unique_id=239410441]
-visible = false
-layout_mode = 2
-metadata/_tab_index = 3
-
-[node name="AcousticDrillModal" type="PanelContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer" unique_id=240929688]
-visible = false
-layout_mode = 2
-script = ExtResource("3_wquia")
-
-[node name="DrillVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal" unique_id=2042025434]
+[node name="HeatingCalculatorVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer/CityHeatingTab" unique_id=1476926175]
 layout_mode = 2
 
-[node name="DrillHeaderHBox" type="HBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox" unique_id=604541738]
+[node name="CurrentCityStatusHBox" type="HBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer/CityHeatingTab/HeatingCalculatorVBox" unique_id=1081172186]
 layout_mode = 2
 
-[node name="RoundInfoLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox/DrillHeaderHBox" unique_id=1060141693]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "ROUND 1 OF 4"
-
-[node name="StepInfoLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox/DrillHeaderHBox" unique_id=457812047]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "SEQUENCE PROGRESS: 0 / 4"
-
-[node name="ValveGridContainer" type="GridContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox" unique_id=1044584740]
+[node name="CurrentTempLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer/CityHeatingTab/HeatingCalculatorVBox/CurrentCityStatusHBox" unique_id=819777559]
 layout_mode = 2
 
-[node name="ValveButton_0" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox/ValveGridContainer" unique_id=1174596412]
-custom_minimum_size = Vector2(110, 110)
+[node name="LivingStageLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer/CityHeatingTab/HeatingCalculatorVBox/CurrentCityStatusHBox" unique_id=980653287]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "VALVE I"
 
-[node name="ValveButton_1" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox/ValveGridContainer" unique_id=1961863486]
-custom_minimum_size = Vector2(110, 110)
+[node name="SteamBufferLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer/CityHeatingTab/HeatingCalculatorVBox/CurrentCityStatusHBox" unique_id=664437562]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "VALVE II"
 
-[node name="ValveButton_2" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox/ValveGridContainer" unique_id=1237017488]
-custom_minimum_size = Vector2(110, 110)
+[node name="TargetTemperatureSlider" type="HSlider" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer/CityHeatingTab/HeatingCalculatorVBox" unique_id=1640558150]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "VALVE III"
 
-[node name="ValveButton_3" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox/ValveGridContainer" unique_id=49335907]
-custom_minimum_size = Vector2(110, 110)
+[node name="PredictionAlertLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/DiagnosticTerminalModal/TerminalVBox/TabContainer/CityHeatingTab/HeatingCalculatorVBox" unique_id=1288848859]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "VALVE IV"
-
-[node name="ValveButton_4" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox/ValveGridContainer" unique_id=191336779]
-custom_minimum_size = Vector2(110, 110)
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "VALVE V"
-
-[node name="ValveButton_5" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox/ValveGridContainer" unique_id=1945917729]
-custom_minimum_size = Vector2(110, 110)
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "VALVE VI"
-
-[node name="DrillStatusLabel" type="Label" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox" unique_id=1598932038]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "OBSERVE FREQUENCY PATTERN"
-
-[node name="LockoutCooldownBar" type="ProgressBar" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox" unique_id=757408584]
-custom_minimum_size = Vector2(0, 24)
-layout_mode = 2
-max_value = 30.0
-
-[node name="AbortDrillButton" type="Button" parent="MainLayout/ModalOverlayLayer/MarginContainer/AcousticDrillModal/DrillVBox" unique_id=2004726622]
-custom_minimum_size = Vector2(0, 60)
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "AbortDrillButton"
 
 [node name="ShiftDebriefModal" type="PanelContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer" unique_id=288928759]
 visible = false
@@ -1269,6 +1234,7 @@ allow_lesser = true
 visible = false
 custom_minimum_size = Vector2(400, 500)
 layout_mode = 2
+script = ExtResource("5_wquia")
 
 [node name="MainVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/WorkshopCraftingModal" unique_id=294906930]
 layout_mode = 2
@@ -1308,6 +1274,7 @@ text = "CLOSE"
 [node name="InventoryModal" type="PanelContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer" unique_id=1139245971]
 visible = false
 layout_mode = 2
+script = ExtResource("6_1ktnu")
 
 [node name="MainVBox" type="VBoxContainer" parent="MainLayout/ModalOverlayLayer/MarginContainer/InventoryModal" unique_id=608254732]
 layout_mode = 2

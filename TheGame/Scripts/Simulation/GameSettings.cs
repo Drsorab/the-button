@@ -173,5 +173,85 @@ namespace PermafrostChieftain.Simulation
         // Πιθανότητα ανάρρωσης αν ο παίκτης έχει διαθέσει εργάτες στην Εντατική (Intensive Care Job)
         public double IntensiveCareHealChance { get; set; } = 0.75; // 75% με οργανωμένο ιατρείο
 
+        // ==========================================
+        // 10. ΜΗΧΑΝΙΚΟΙ ΔΙΑΚΡΙΤΩΝ ΕΡΓΑΣΙΩΝ (DISCRETE JOBS & SOOT)
+        // ==========================================
+        // Καπνιά (Soot)
+        public double SootAccumulationPerKgCoal { get; set; } = 0.5; // Πόση καπνιά (σε μονάδες) βγάζει 1 kg κάρβουνου
+        public double MaxSootCapacity { get; set; } = 100.0; // Το μέγιστο όριο καπνιάς πριν το σύστημα φράξει τελείως
+
+        // Τα Πέναλτι της Καπνιάς
+        public double SootPenalty_FurnaceEfficiencyLoss { get; set; } = 0.2; // Στο 100% καπνιάς, χάνεις 20% απόδοση θερμότητας (Option A)
+        public double SootPenalty_StressAccumulationMultiplier { get; set; } = 2.0; // Στο 100% καπνιάς, το στρες ανεβαίνει 2x πιο γρήγορα (Option B)
+
+        // Ολοκλήρωση Εργασίας Καθαρισμού Καπνιάς
+        public double CleanSootWorkRequired { get; set; } = 50.0; // Πόση "Δουλειά" (δευτερόλεπτα * εργάτες) χρειάζεται για 1 καθάρισμα
+        public double CoalYieldFromCleaningSoot { get; set; } = 10.0; // Ελάχιστο κάρβουνο ως ανταμοιβή
+        public double SootRemovedPerClean { get; set; } = 25.0; // Πόση καπνιά αφαιρείται σε κάθε ολοκλήρωση
+
+        // Μπάλωμα Ημέρας (Daytime Patch)
+        public double PatchWorkRequired { get; set; } = 120.0;
+
+        // Νυχτερινή Επισκευή (Night Hull Repair)
+        public double NightRepairWorkRequired { get; set; } = 200.0;
+        public double NightRepairRefinedMetalCost { get; set; } = 10.0; // Κόστος μετάλλου ανά παρτίδα (Batch)
+        public double NightRepairIntegrityRestored { get; set; } = 5.0; // Η αντοχή (Y%) που επιστρέφεται ανά παρτίδα
+
+
+        // ==========================================
+        // 11. ΜΗΧΑΝΟΥΡΓΕΙΟ: ΚΑΤΑΣΚΕΥΕΣ (WORKSHOP CRAFTING)
+        // ==========================================
+        // Πόση δουλειά απαιτείται για την κατασκευή ενός Metal Patch
+        public double CraftMetalPatchWorkRequired { get; set; } = 180.0;
+        public double CraftMetalPatchRefinedMetalCost { get; set; } = 10.0; // Πόσο Refined Metal κοστίζει
+
+        // Μηχανισμός Ηλεκτρισμού (Electricity Synergy)
+        public double WorkshopElectricityConsumptionPerWorker { get; set; } = 0.5; // kW ρεύματος ανά δευτερόλεπτο
+        public double WorkshopElectricitySpeedMultiplier { get; set; } = 3.0; // Πόσο πιο γρήγορα τελειώνει η δουλειά αν υπάρχει ρεύμα!
+
+        // ==========================================
+        // 12. ΜΗΧΑΝΟΥΡΓΕΙΟ: ΣΥΝΤΗΡΗΣΗ (WORKSHOP UPKEEP)
+        // ==========================================
+        // Κάθε εργάτης που έχει ανατεθεί στο Upkeep μειώνει την πιθανότητα ατυχήματος σε ΟΛΕΣ τις δουλειές
+        public double UpkeepSafetyBonusPerWorker { get; set; } = 0.05; // 5% μείωση ανά εργάτη
+        public double MaxUpkeepSafetyBonus { get; set; } = 0.50; // Μέγιστη μείωση κινδύνου στο 50% (Hard cap)
+
+        // ==========================================
+        // ΧΡΟΝΟΣ ΚΑΙ ΒΑΡΔΙΕΣ (REAL-TIME SHIFT SETTINGS & CLOCK PHASES)
+        // Προσοχή: Όλες οι διάρκειες φάσεων (Phases) είναι σε Δευτερόλεπτα (Seconds)
+        // ==========================================
+
+        // 16 Ώρες πραγματικού χρόνου νυχτερινής βάρδιας (960 λεπτά * 60)
+        public double NightDuration { get; set; } = 57600.0;
+
+        // Ο Κύκλος της Εκτόνωσης. 108 πραγματικά λεπτά (108 * 60 = 6480 δευτερόλεπτα)
+        public double ActiveCycleDuration { get; set; } = 6480.0;
+
+        // Ο χρόνος που μένει στο τέλος της 8ωρης βάρδιας, αφού γίνουν 4 κύκλοι των 108 λεπτών.
+        // (8 ώρες = 28800 δευτερόλεπτα) - (4 κύκλοι * 6480 = 25920 δευτερόλεπτα) = 2880 δευτερόλεπτα (48 λεπτά)
+        public double TwilightDuration { get; set; } = 2880.0;
+
+        // Ο χρόνος (σε δευτερόλεπτα) που έχει ο παίκτης για να πατήσει το κουμπί από τη στιγμή που θα ανάψει.
+        // Αν δεν το πατήσει, η πίεση εγκλωβίζεται (Grace Period). 
+        // Π.χ. 300 δευτερόλεπτα = 5 λεπτά.
+        public double VentGracePeriod { get; set; } = 300.0;
+
+        // Ο χρόνος που έχει ο παίκτης αφού ανοίξει το παράθυρο (Modal) για να επιλέξει πού θα πάει ο ατμός.
+        // Αν λήξει, το παράθυρο κλείνει αυτόματα.
+        public double VentModalTimeout { get; set; } = 30.0;
+
+        // ==========================================
+        // 11. ΜΗΧΑΝΟΥΡΓΕΙΟ: ΚΑΤΑΣΚΕΥΕΣ (WORKSHOP CRAFTING & FUSES)
+        // ==========================================
+        // (Κράτα τα υπάρχοντα του Metal Patch από πάνω)
+
+        // Κατασκευή Ασφαλειών (Fuses)
+        public int MaxFuses { get; set; } = 3; // Μέγιστος αριθμός
+        public double CraftFuseWorkRequired { get; set; } = 600.0; // Πολύς χρόνος (σημαντική ενέργεια)
+        public double CraftFuseRefinedMetalCost { get; set; } = 30.0; // Πολύ ακριβό σε μέταλλο
+
+        // Ζημιά όταν σπάει μια Ασφάλεια (λόγω χαμένου Routing)
+        public double FuseBlowIntegrityDamage { get; set; } = 15.0; // Σπάει και κάνει ζημιά 15% στη γεννήτρια
+        public double FuseBlowPressureReleasePct { get; set; } = 0.8; // Απελευθερώνει βίαια το 80% της πίεσης στην ατμόσφαιρα
     }
 }

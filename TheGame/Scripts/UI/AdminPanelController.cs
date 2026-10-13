@@ -43,74 +43,76 @@ namespace PermafrostChieftain.Orchestration
             _closeButton.Pressed += () => Visible = false;
             _saveButton.Pressed += () =>
             {
-                GameSettings.Instance.Save();
-                GD.Print("Οι ρυθμίσεις αποθηκεύτηκαν επιτυχώς στο admin_settings.json");
+                // Αν έχεις υλοποιήσει το Save() στο GameSettings
+                // GameSettings.Instance.Save(); 
+                GD.Print("Οι ρυθμίσεις εφαρμόστηκαν (Runtime)!");
             };
 
-            // Γέμισμα του Tab 1: Timer
+            // ========================================================
+            // ΑΝΤΙΣΤΟΙΧΙΣΗ ΜΕΤΑΒΛΗΤΩΝ ΜΕ ΤΑ TABS ΤΟΥ GODOT
+            // ========================================================
+
+            // Tab 1: Timer (Ημέρα, Νύχτα & Κύκλοι)
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Timer/ContentVBox", new Dictionary<string, string[]> {
-                { "MASTER CLOCK", new[] { "ActiveCycleDuration", "TwilightDuration", "NightDuration" } },
-                { "UI & MODALS", new[] { "VentGracePeriod", "VentModalTimeout" } }
+                { "SHIFTS (SECONDS)", new[] { "DayShiftDurationHours", "NightDuration", "ActiveCycleDuration", "TwilightDuration" } },
+                { "MODAL TIMERS", new[] { "VentGracePeriod", "VentModalTimeout", "RoutingCycleDurationMinutes" } }
             });
 
-            // Γέμισμα του Tab 2: Core
+            // Tab 2: Core (Θερμοδυναμική)
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Core/ContentVBox", new Dictionary<string, string[]> {
-                { "STARTING CONDITIONS", new[] { "StartingCoreTemp", "StartingPressure", "IgnitionCoalCost",
-                        "ShutdownTempThreshold",
-                        "InactiveCoolingRate" , "AmbientTemperature" } },
-                { "THERMODYNAMICS", new[] { "OptimalCoreTemp", "BoilingPointThreshold", "HeatGainPerKgCoal", "AmbientHeatLossRate" } },
-                { "PRESSURE DYNAMICS", new[] { "MaxPressure", "BasePressureGenerationRate", "NightBleedRate" } }
+                { "TEMPERATURE LIMITS", new[] { "AmbientWeatherTemperature", "OptimalCoreTemp", "BoilingPointThreshold" } },
+                { "THERMODYNAMICS", new[] { "HeatGainPerKgCoal", "CoreThermalMass", "LatentHeatSteamConversionRatio", "TurbineThermalShockPerBar", "SmeltingHeatDrainPerWorker" } },
+                { "COOLING RATES", new[] { "GeneratorWeatherCoolingCoefficient", "CityWeatherCoolingCoefficient" } }
             });
 
-            // Γέμισμα του Tab 3: Hull
+            // Tab 3: Hull (Πίεση & Ζημιές)
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Hull/ContentVBox", new Dictionary<string, string[]> {
-                { "DAMAGE THRESHOLDS", new[] { "PressureDamageThreshold", "HeatDamageThreshold" } },
-                { "DAMAGE RATES", new[] { "CasingDamageHeatMultiplier", "CasingDamagePressureMultiplier", "ViolentDischargeCasingDamage", "HullCrackedLeakRate", "StartingHullIntegrity" } }
+                { "PRESSURE LIMITS", new[] { "MaxSafePressureAtFullIntegrity", "IntegrityToSafePressureMultiplier", "BaseSteamGenerationRate" } },
+                { "STRESS & DAMAGE", new[] { "StressAccumulationPerOverpressure", "StressToDamageThreshold", "IntegrityDamagePerStressBreak", "StressBreakGracePeriod", "BaseStressReliefRate" } },
+                { "HULL CRACKS", new[] { "BaseCrackProbabilityPerTick", "InitialCrackLeakRate", "CrackLeakEscalationRate" } }
             });
 
-            // Γέμισμα του Tab 4: Soot
+            // Tab 4: Soot (Καπνιά)
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Soot/ContentVBox", new Dictionary<string, string[]> {
-                { "GENERATION & INSULATION", new[] { "BaseSootGenerationRate", "SmolderingSootPenalty", "SootInsulationMultiplier" } },
-                { "BLOWOUT MECHANIC", new[] { "BlowoutPressureCost", "BlowoutHullDamage", "BlowoutSootCleared" } },
-                { "JOB CLEANING", new[] { "DaySootCleanAmount", "NightSootCleanAmount" } }
+                { "SOOT GENERATION", new[] { "SootAccumulationPerKgCoal", "MaxSootCapacity" } },
+                { "SOOT PENALTIES", new[] { "SootPenalty_FurnaceEfficiencyLoss", "SootPenalty_StressAccumulationMultiplier" } },
+                { "CLEANING", new[] { "CleanSootWorkRequired", "CoalYieldFromCleaningSoot", "SootRemovedPerClean" } }
             });
 
-            // Γέμισμα του Tab 5: Vent
+            // Tab 5: Vent (Routing & Νύχτα)
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Vent/ContentVBox", new Dictionary<string, string[]> {
-                { "ROUTING MULTIPLIERS", new[] { "VentElectricityMultiplier", "VentCoalMultiplier", "VentScrapMultiplier", "VentRoutingSootPenalty" } },
-                { "MICRO-BLEED", new[] { "MicroBleedPressureDeduct", "MicroBleedCityHeatAdd", "MicroBleedDrillCoalAdd", "MicroBleedWorkshopElecAdd" } }
+                { "ROUTING YIELDS", new[] { "SteamToCoalYield", "SteamToElectricityYield", "SteamToCityHeatYield" } },
+                { "NIGHT BLEED", new[] { "NightShiftSteamBleedRate", "NightShiftCityBleedRatePerSec" } }
             });
 
-            // Γέμισμα του Tab 6: Resources
+            // Tab 6: Resources (Logistics & Αποθέματα)
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Resources/ContentVBox", new Dictionary<string, string[]> {
-                { "STARTING STOCKPILES", new[] { "StartingCoal", "StartingScrap", "StartingElectricity" } },
-                { "NIGHT SHIFT LOGISTICS", new[] { "NightElectricityDrainRate", "NightHeatConversionEfficiency" } }
+                { "STARTING STOCKPILES", new[] { "StartingCoal", "StartingRawScrap", "StartingRefinedMetal", "StartingElectricity" } },
+                { "IDLE CONSUMPTION", new[] { "NightShiftIdleCoalConsumption" } }
             });
 
-            // Γέμισμα του Tab 7: Population
+            // Tab 7: Population (Πληθυσμός & Υγεία)
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Population/ContentVBox", new Dictionary<string, string[]> {
-                { "STARTING POPULATION", new[] { "StartingHealthy", "StartingSick", "StartingGrave" } },
-                { "HEALTH & HAZARDS", new[] { "HazardDeathThreshold", "DeathRollProbability", "IntensiveCareHealChance", "NormalHealChance" } }
+                { "INITIAL WORKFORCE", new[] { "StartingHealthy", "StartingSick", "StartingGrave" } },
+                { "CITY TEMP STAGES", new[] { "TempStage_Comfortable", "TempStage_Warm", "TempStage_Livable", "TempStage_Cold" } },
+                { "SICKNESS RATES", new[] { "SicknessRate_Comfortable", "SicknessRate_Warm", "SicknessRate_Livable", "SicknessRate_Cold", "SicknessRate_Freezing" } },
+                { "HEALING & HAZARDS", new[] { "DeathRollProbability", "NormalHealChance", "IntensiveCareHealChance" } }
             });
 
-            // Γέμισμα του Tab 8: Jobs
+            // Tab 8: Jobs (Ρυθμοί Εργασίας)
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Jobs/ContentVBox", new Dictionary<string, string[]> {
-                { "FURNACE & HULL", new[] { "StokeCoalPerWorkerPerHour", "BracingScrapCost", "BracingRepairAmount" } },
-                { "REWARDS & SCAVENGING", new[] { "DamperScrapYield", "BaseCoalSootReward", "SootMultiplierPerDay", "BaseScrapMaintReward", "MaintMultiplierPerDay" } }
+                { "CONTINUOUS JOBS", new[] { "StokerCoalConsumptionPerWorker", "CoalMiningBaseRatePerWorker", "CoalMiningDrillBuffMultiplier", "SteamDrillBuffDurationPerBar", "ScavengeScrapBaseRatePerWorker", "SmeltingRawScrapCostPerWorker", "SmeltingRefinedMetalRatePerWorker", "TurbineSteamCostPerWorker", "TurbinePowerPerWorker" } },
+                { "WORKSHOP UPKEEP", new[] { "UpkeepSafetyBonusPerWorker", "MaxUpkeepSafetyBonus" } },
+                { "DISCRETE REPAIRS", new[] { "PatchWorkRequired", "NightRepairWorkRequired", "NightRepairRefinedMetalCost", "NightRepairIntegrityRestored" } }
             });
 
+            // Tab 9: Equipment (Χρησιμοποιείται πλέον για Fuses & Crafting)
             PopulateTabWithGroups("MainVBox/AdminTabContainer/Tab_Equipment/ContentVBox", new Dictionary<string, string[]> {
-                { "SHOVELS (FURNACE)", new[] { "ShovelCoalBonusMultiplier", "ShovelHeatDegradationMultiplier", "ShovelBaseDegradationPerSec" } },
-                { "BATTERIES (RELAY)", new[] { "BatteryCapacityBonus", "BatteryDegradationPerCycle" } },
-                { "RESPIRATORS (HAZARD)", new[] { "RespiratorHazardReduction", "RespiratorClogRatePerSec", "RespiratorDangerThreshold", "RespiratorBrokenHazardPenalty" } },
-                { "WIRE BRUSHES (SCOUR)", new[] { "BrushWorkReductionMultiplier", "BrushYieldMultiplier", "BrushDegradationPerSec" } },
-                { "NIGHT REPAIR", new[] { "NightShiftRepairRate" } }
+                { "WORKSHOP CRAFTING", new[] { "CraftMetalPatchWorkRequired", "CraftMetalPatchRefinedMetalCost", "WorkshopElectricityConsumptionPerWorker", "WorkshopElectricitySpeedMultiplier" } },
+                { "FUSE SYSTEM", new[] { "MaxFuses", "CraftFuseWorkRequired", "CraftFuseRefinedMetalCost", "FuseBlowIntegrityDamage", "FuseBlowPressureReleasePct" } }
             });
-
-            PopulateJobDictionaryTab("MainVBox/AdminTabContainer/Tab_Jobs/ContentVBox");
         }
 
-        // ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Υποστηρίζει ομάδες (Groups), επικεφαλίδες (Headers) και αποστάσεις (Spacers)
         private void PopulateTabWithGroups(string containerPath, Dictionary<string, string[]> groups)
         {
             var container = GetNode<VBoxContainer>(containerPath);
@@ -118,7 +120,7 @@ namespace PermafrostChieftain.Orchestration
 
             foreach (var group in groups)
             {
-                // Προσθήκη κενού χώρου πριν από κάθε νέα ομάδα (εκτός από την πρώτη)
+                // Προσθήκη κενού χώρου
                 if (container.GetChildCount() > 0)
                 {
                     var spacer = new Control { CustomMinimumSize = new Vector2(0, 15) };
@@ -128,14 +130,18 @@ namespace PermafrostChieftain.Orchestration
                 // Προσθήκη Τίτλου Ομάδας
                 var title = new Label();
                 title.Text = $"--- {group.Key} ---";
-                title.Modulate = new Color(0.4f, 0.8f, 1f); // Απαλό γαλάζιο χρώμα για τον τίτλο
+                title.Modulate = new Color(0.4f, 0.8f, 1f);
                 container.AddChild(title);
 
                 // Γέμισμα των μεταβλητών της ομάδας
                 foreach (string propName in group.Value)
                 {
                     PropertyInfo propInfo = settingsType.GetProperty(propName);
-                    if (propInfo == null) continue;
+                    if (propInfo == null)
+                    {
+                        GD.PrintErr($"[AdminPanel] Property '{propName}' not found in GameSettings!");
+                        continue;
+                    }
 
                     var newField = (HBoxContainer)_prefab.Duplicate();
                     newField.Visible = true;
@@ -147,45 +153,23 @@ namespace PermafrostChieftain.Orchestration
                     double currentValue = Convert.ToDouble(propInfo.GetValue(GameSettings.Instance));
                     spinBox.Value = currentValue;
 
+                    // Λόγω Reflection, βάζουμε όρια ανάλογα με τον τύπο
+                    if (propInfo.PropertyType == typeof(int))
+                    {
+                        spinBox.Step = 1;
+                        spinBox.Rounded = true;
+                    }
+                    else
+                    {
+                        spinBox.Step = 0.01;
+                    }
+
                     spinBox.ValueChanged += (newValue) =>
                     {
                         object convertedValue = Convert.ChangeType(newValue, propInfo.PropertyType);
                         propInfo.SetValue(GameSettings.Instance, convertedValue);
                     };
                 }
-            }
-        }
-
-        private void PopulateJobDictionaryTab(string containerPath)
-        {
-            var container = GetNode<VBoxContainer>(containerPath);
-
-            var spacer = new Control { CustomMinimumSize = new Vector2(0, 25) };
-            container.AddChild(spacer);
-
-            var mainTitle = new Label { Text = "=== JOB BASE WORK & OPTIMAL WORKERS ===", Modulate = new Color(1f, 0.8f, 0.2f) };
-            container.AddChild(mainTitle);
-
-            foreach (var kvp in GameSettings.Instance.JobConfigs)
-            {
-                var title = new Label { Text = $"\n--- {kvp.Key} ---", Modulate = new Color(0.5f, 1f, 0.5f) };
-                container.AddChild(title);
-
-                var workField = (HBoxContainer)_prefab.Duplicate();
-                workField.Visible = true;
-                container.AddChild(workField);
-                workField.GetNode<Label>("PropertyNameLabel").Text = "Base Work Required";
-                var workSpin = workField.GetNode<SpinBox>("PropertyValueSpinBox");
-                workSpin.Value = kvp.Value.BaseWork;
-                workSpin.ValueChanged += (val) => kvp.Value.BaseWork = val;
-
-                var workersField = (HBoxContainer)_prefab.Duplicate();
-                workersField.Visible = true;
-                container.AddChild(workersField);
-                workersField.GetNode<Label>("PropertyNameLabel").Text = "Optimal Workers";
-                var workersSpin = workersField.GetNode<SpinBox>("PropertyValueSpinBox");
-                workersSpin.Value = kvp.Value.OptimalWorkers;
-                workersSpin.ValueChanged += (val) => kvp.Value.OptimalWorkers = (int)val;
             }
         }
     }

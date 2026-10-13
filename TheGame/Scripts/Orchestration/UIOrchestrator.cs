@@ -6,7 +6,6 @@ using PermafrostChieftain.Simulation;
 
 namespace PermafrostChieftain.Orchestration
 {
-    // Βοηθητική κλάση για την ομαδοποίηση των στοιχείων UI κάθε κάρτας εργασίας (Job Card)
     public class JobCardUI
     {
         public string BaseName;
@@ -26,30 +25,33 @@ namespace PermafrostChieftain.Orchestration
         private Label _coalLabel, _scrapLabel, _relayLabel, _cityTempLabel;
         private Label _totalPopLabel, _healthyCountLabel, _sickCountLabel, _gravelySickCountLabel;
 
+        // ΝΕΑ ΣΤΟΙΧΕΙΑ: Stress & Hull Alert
         private Label _pressureTitleLabel, _coreTempLabel, _casingTitleLabel, _sootTitleLabel;
-        private ProgressBar _pressureGaugeBar, _casingIntegrityBar, _sootFoulingBar;
+        private ProgressBar _pressureGaugeBar, _stressGaugeBar, _casingIntegrityBar, _sootFoulingBar;
+        private TextureRect _hullCrackAlertIcon;
         private HBoxContainer _fuseRackContainer;
 
-        private Label _cycleClockLabel, _shiftCountdownLabel;
+        // ΝΕΑ ΣΤΟΙΧΕΙΑ: Φάση Ρολογιού & Calculator Πόλης
+        private Label _cycleClockLabel, _shiftCountdownLabel, _currentPhaseLabel;
+        private Label _cityHeatPredictionLabel;
+        private HSlider _targetCityTempSlider;
+
         private Control _dayShiftView, _nightShiftView;
         private Button _ventActuatorButton;
         private ProgressBar _workshopHazardBar;
         private Label _unassignedReserveLabel;
 
-        // Νέα στοιχεία: Οθόνη Εκτόνωσης (Vent Routing Modal)
+        // Οθόνη Εκτόνωσης (Vent Routing Modal)
         private PanelContainer _ventRoutingModal;
         private Label _routingTitleLabel;
         private HSlider _cityVentSlider, _workshopVentSlider, _drillVentSlider, _atmosphereVentSlider;
         private Label _cityVentValue, _workshopVentValue, _drillVentValue, _atmosphereVentValue, _retainVentValue;
         private Button _confirmVentButton;
 
-        // Λεξικό για γρήγορη πρόσβαση στα UI στοιχεία των εργασιών
         private Dictionary<JobType, JobCardUI> _jobCards = new();
 
-        private OptionButton _microBleedTargetDropdown;
         private Button _adminPanelButton;
         private PanelContainer _adminPanelModal;
-        private Button _blowoutButton;
 
         // Στοιχεία UI για Κατασκευή (Shop)
         private Button _openShopButton;
@@ -77,47 +79,35 @@ namespace PermafrostChieftain.Orchestration
         private Label _gameOverReasonLabel;
         private Button _gameOverRestartBtn;
         private RichTextLabel _finalStatsLabel;
+
+        // Κρατάμε ποια συνταγή crafting έχει επιλέξει ο παίκτης από το Dropdown/Modal
+        private JobType _activeCraftingJob = JobType.WorkshopCraftPatch;
+
         public override void _Ready()
         {
-            _gameOrchestrator = GetNode<GameOrchestrator>("../");
+            // 1. Ασφαλής ανάκτηση του Orchestrator από το Root του δέντρου
+            _gameOrchestrator = GetTree().Root.GetNodeOrNull<GameOrchestrator>("TheGame");
 
-            if (_gameOrchestrator != null && _gameOrchestrator.Clock == null)
-            {
-                _gameOrchestrator.InitializeSimulation();
-            }
-
-            // 1. ΠΡΩΤΑ κάνουμε την ανάκτηση των Nodes ώστε να μην είναι null.
+            // 2. Δέσιμο των UI Nodes
             BindUiNodes();
 
-            // 2. Σύνδεση των UI Timeouts με τα ρολόγια του συστήματος
-            _gameOrchestrator.Clock.VentModalTimeoutExpired += () =>
+            // 3. Σύνδεση με το ρολόι (Πλέον είμαστε σίγουροι ότι το Clock ΔΕΝ είναι null)
+            if (_gameOrchestrator != null)
             {
-                // Το παράθυρο εκτόνωσης κλείνει βίαια αν λήξει ο χρόνος του Modal
-                if (_ventRoutingModal != null && _ventRoutingModal.Visible)
+                _gameOrchestrator.Clock.VentModalTimeoutExpired += () =>
                 {
-                    _ventRoutingModal.Visible = false;
-                }
-
-                GD.Print("UI: Το παράθυρο εκτόνωσης έκλεισε βίαια λόγω timeout!");
-            };
-
-            // Το κουμπί εκτόνωσης (Vent Actuator) πρέπει να κρύβεται/αλλάζει κατάσταση όταν αλλάζει η φάση 
-            _gameOrchestrator.PhaseTransitionTriggered += (phaseIndex) =>
+                    if (_ventRoutingModal != null && _ventRoutingModal.Visible)
+                    {
+                        _ventRoutingModal.Visible = false;
+                    }
+                    GD.Print("UI: Το παράθυρο εκτόνωσης έκλεισε βίαια λόγω timeout!");
+                };
+            }
+            else
             {
-                CyclePhase newPhase = (CyclePhase)phaseIndex;
+                GD.PrintErr("UIOrchestrator: Δεν βρέθηκε το TheGame (GameOrchestrator) στο δέντρο!");
+            }
 
-                if (_ventActuatorButton != null)
-                {
-                    // ΝΕΟ: Είναι ΠΑΝΤΑ ορατό αν η γεννήτρια είναι κλειστή. 
-                    // Αν είναι ανοιχτή, ακολουθεί τον κανόνα των φάσεων.
-                    _ventActuatorButton.Visible = (!_gameOrchestrator.IsGeneratorActive) ||
-                                                  (newPhase == CyclePhase.VentPending ||
-                                                   newPhase == CyclePhase.VentRouting ||
-                                                   newPhase == CyclePhase.DayActive);
-                }
-            };
-
-            // 3. Σύνδεση των υπόλοιπων γεγονότων
             ConnectSimulationSignals();
             BindInputEvents();
 
@@ -127,149 +117,151 @@ namespace PermafrostChieftain.Orchestration
         private void ConnectSimulationSignals()
         {
             if (_gameOrchestrator == null) return;
-            _gameOrchestrator.TelemetryUpdated += OnTelemetryUpdated;
-            _gameOrchestrator.PhaseTransitionTriggered += OnPhaseTransitionTriggered;
 
-            //Σύνδεση με το σύστημα καταγραφής
-            _gameOrchestrator.LogEventDispatched += OnLogDispatched;
-            _gameOrchestrator.ShiftReportGenerated += OnShiftReportGenerated;
-            _gameOrchestrator.GameOverTriggered += OnGameOverTriggered;
+            // Το TelemetrySnapshot πλέον τραβάει τα πάντα με μια κλήση
+            _gameOrchestrator.OnGameEvent += OnGameEventReceived;
+        }
+
+        public override void _Process(double delta)
+        {
+            // Αντί για event, ρωτάμε το backend κάθε frame για το UI Snapshot
+            if (_gameOrchestrator != null)
+            {
+                OnTelemetryUpdated();
+            }
         }
 
         private void BindUiNodes()
         {
             var stack = GetNode<VBoxContainer>("ScreenMargin/VerticalStack");
 
-            // --- Header & Boiler Panels ---
+            // --- Header Panels ---
             var headerVBox = stack.GetNode<VBoxContainer>("PersistentHeaderPanel/HeaderVBox");
             _coalLabel = headerVBox.GetNode<Label>("PrimaryStockpileHBox/CoalLabel");
             _scrapLabel = headerVBox.GetNode<Label>("PrimaryStockpileHBox/ScrapLabel");
+            _relayLabel = headerVBox.GetNode<Label>("PrimaryStockpileHBox/RelayLabel");
             _cityTempLabel = headerVBox.GetNode<Label>("PrimaryStockpileHBox/CityTempLabel");
             _totalPopLabel = headerVBox.GetNode<Label>("PopulationQuickBarHBox/TotalPopLabel");
             _healthyCountLabel = headerVBox.GetNode<Label>("PopulationQuickBarHBox/HealthyCountLabel");
             _sickCountLabel = headerVBox.GetNode<Label>("PopulationQuickBarHBox/SickCountLabel");
 
+            // --- Boiler Panel ---
             var boilerVBox = stack.GetNode<VBoxContainer>("PersistentBoilerStatusPanel/BoilerVBox");
             _pressureTitleLabel = boilerVBox.GetNode<Label>("PressureHeaderHBox/PressureTitleLabel");
             _coreTempLabel = boilerVBox.GetNode<Label>("PressureHeaderHBox/CoreTempLabel");
             _fuseRackContainer = boilerVBox.GetNode<HBoxContainer>("PressureHeaderHBox/FuseRackContainer");
             _pressureGaugeBar = boilerVBox.GetNode<ProgressBar>("PressureGaugeBar");
 
+            // ΝΕΑ: Stress & Hull Alert 
+            _stressGaugeBar = boilerVBox.GetNode<ProgressBar>("StressRowHBox/StressGaugeBar");
             _casingTitleLabel = boilerVBox.GetNode<Label>("CasingRowHBox/CasingTitleLabel");
+            _hullCrackAlertIcon = boilerVBox.GetNode<TextureRect>("CasingRowHBox/HullCrackAlertIcon");
             _casingIntegrityBar = boilerVBox.GetNode<ProgressBar>("CasingRowHBox/CasingIntegrityBar");
+
             _sootTitleLabel = boilerVBox.GetNode<Label>("SootRowHBox/SootTitleLabel");
             _sootFoulingBar = boilerVBox.GetNode<ProgressBar>("SootRowHBox/SootFoulingBar");
-            _blowoutButton = boilerVBox.GetNode<Button>("SootRowHBox/BlowoutButton");
 
+            // --- Chronometer Panel ---
             var chronoVBox = stack.GetNode<VBoxContainer>("PersistentChronometerPanel/ChronoVBox");
             _cycleClockLabel = chronoVBox.GetNode<Label>("MasterClockHBox/CycleClockLabel");
-            _shiftCountdownLabel = chronoVBox.GetNode<Label>("MasterClockHBox/ShiftCountdownLabel");
+            _shiftCountdownLabel = chronoVBox.GetNode<Label>("MasterClockHBox/NextVentCountdownLabel");
+            _currentPhaseLabel = chronoVBox.GetNode<Label>("MasterClockHBox/CurrentPhaseLabel");
 
             var viewport = stack.GetNode<MarginContainer>("MainViewportArea");
             _dayShiftView = viewport.GetChild<Control>(0);
             _nightShiftView = viewport.GetChild<Control>(1);
 
-            // --- Κουμπί Εκτόνωσης & Hazard Μηχανουργείου ---
             _ventActuatorButton = _dayShiftView.GetNode<Button>("DayVBox/VentDecompressionCard/VentVBox/VentActuatorButton");
             _workshopHazardBar = _nightShiftView.GetNode<ProgressBar>("NightVBox/WorkshopCard/WorkshopHazardVBox/WorkshopHazardHBox/WorkshopHazardBar");
 
             var laborVBox = _dayShiftView.GetNode<VBoxContainer>("DayVBox/LaborAllocationCard/LaborVBox");
             _unassignedReserveLabel = laborVBox.GetNode<Label>("UnassignedReserveLabel");
 
-            _relayLabel = headerVBox.GetNode<Label>("PrimaryStockpileHBox/RelayLabel");
-            _microBleedTargetDropdown = laborVBox.GetNode<OptionButton>("Job_MicroBleed/JobVBox/TargetDropdown");
-            // --- Ανάκτηση των καρτών εργασιών (Ημέρα) ---
+            // --- Ανάκτηση των καρτών εργασιών (Ημέρα) - Ενημερωμένα Ονόματα ---
             BindJobCard(laborVBox, "Job_StokeFurnace", JobType.StokeFurnace);
-            BindJobCard(laborVBox, "Job_MicroBleed", JobType.MicroBleed);
-            BindJobCard(laborVBox, "Job_HullBracing", JobType.StructuralBracing);
-            BindJobCard(laborVBox, "Job_ScourFlues", JobType.ScourFlues);
+            BindJobCard(laborVBox, "Job_CoalMining", JobType.CoalMining);
+            BindJobCard(laborVBox, "Job_ScrapScavenging", JobType.ScrapScavenging);
+            BindJobCard(laborVBox, "Job_MetalSmelting", JobType.MetalSmelting);
+            BindJobCard(laborVBox, "Job_OperateTurbines", JobType.OperateTurbines);
 
-            // --- Ανάκτηση των καρτών εργασιών (Νύχτα) ---
+            // Το dropdown/crafting χρησιμοποιεί ένα job type τη φορά
+            BindJobCard(laborVBox, "Job_WorkshopMachining", JobType.WorkshopCraftPatch);
+
+            // --- Ανάκτηση των καρτών εργασιών (Νύχτα) - Ενημερωμένα Ονόματα ---
             var nightJobsVBox = _nightShiftView.GetNode<VBoxContainer>("NightVBox/NightJobsVBox");
-            BindJobCard(nightJobsVBox, "Job_DamperThrottling", JobType.DamperThrottling);
-            BindJobCard(nightJobsVBox, "Job_DeepScour", JobType.DeepScour);
-            BindJobCard(nightJobsVBox, "Job_WorkshopMaint", JobType.WorkshopMaintenance);
+            BindJobCard(nightJobsVBox, "Job_NightHullRepair", JobType.NightHullRepair);
+            BindJobCard(nightJobsVBox, "Job_WorkshopUpkeep", JobType.WorkshopUpkeep);
             BindJobCard(nightJobsVBox, "Job_IntensiveCare", JobType.IntensiveCare);
+            // Το νυχτερινό crafting χρησιμοποιεί το Fuse (ως default, αλλάζει μέσω του UI)
+            BindJobCard(nightJobsVBox, "Job_NightCrafting", JobType.WorkshopCraftFuse);
+            BindJobCard(laborVBox, "Job_DaytimePatch", JobType.DaytimePatch);
 
-            BindJobCard(laborVBox, "Job_WorkshopMachining", JobType.WorkshopMachining);
-            BindJobCard(nightJobsVBox, "Job_ManualTinkering", JobType.ManualTinkering);
-            // --- Ανάκτηση του Vent Routing Modal ---
+            // Ομοίως για το Soot (Καπνιά)
+            BindJobCard(laborVBox, "Job_CleanSoot", JobType.CleanSoot);
+            // --- Vent Routing Modal ---
             var overlay = GetNode<Control>("ModalOverlayLayer/MarginContainer");
             _ventRoutingModal = overlay.GetNode<PanelContainer>("VentRoutingModal");
-
-            // Τα στοιχεία είναι απευθείας παιδιά, όπως φαίνεται στο δέντρο
+            _routingTitleLabel = _ventRoutingModal.GetNode<Label>("RoutingVBox/RoutingTitleLabel");
             _cityVentSlider = _ventRoutingModal.GetNode<HSlider>("RoutingVBox/CityRoutingHBox/CityVentSlider");
             _cityVentValue = _ventRoutingModal.GetNode<Label>("RoutingVBox/CityRoutingHBox/CityVentValueLabel");
-
             _workshopVentSlider = _ventRoutingModal.GetNode<HSlider>("RoutingVBox/WorkshopRoutingHBox/WorkshopVentSlider");
             _workshopVentValue = _ventRoutingModal.GetNode<Label>("RoutingVBox/WorkshopRoutingHBox/WorkshopVentValueLabel");
-
             _drillVentSlider = _ventRoutingModal.GetNode<HSlider>("RoutingVBox/DrillRoutingHBox/DrillVentSlider");
             _drillVentValue = _ventRoutingModal.GetNode<Label>("RoutingVBox/DrillRoutingHBox/DrillVentValueLabel");
-
-            // Η εκτόνωση στην ατμόσφαιρα
             _atmosphereVentSlider = _ventRoutingModal.GetNode<HSlider>("RoutingVBox/AtmosphereRoutingHBox/AtmosphereVentSlider");
             _atmosphereVentValue = _ventRoutingModal.GetNode<Label>("RoutingVBox/AtmosphereRoutingHBox/AtmosphereVentValueLabel");
-
-            // Το label που θα δείχνει την εναπομείνασα πίεση
             _retainVentValue = _ventRoutingModal.GetNode<Label>("RetainedPressureValueLabel");
             _confirmVentButton = _ventRoutingModal.GetNode<Button>("RoutingVBox/ConfirmVentButton");
 
-            // Το κουμπί από το κάτω μενού
+            // --- Modals ---
             _adminPanelButton = stack.GetNode<Button>("PersistentBottomDock/DockHBox/AdminPanelButton");
-            // Το modal (που τώρα έχει και το δικό του script)
             _adminPanelModal = GetNode<PanelContainer>("ModalOverlayLayer/MarginContainer/AdminPanelModal");
-
-            // (Κάτω από το _adminPanelButton = ...)
             _openShopButton = stack.GetNode<Button>("PersistentBottomDock/DockHBox/OpenShopButton");
             _openInventoryButton = stack.GetNode<Button>("PersistentBottomDock/DockHBox/OpenInventoryButton");
 
-            // Shop Modal
             _workshopCraftingModal = overlay.GetNode<PanelContainer>("WorkshopCraftingModal");
             _recipeListVBox = _workshopCraftingModal.GetNode<VBoxContainer>("MainVBox/ScrollArea/RecipeListVBox");
             _recipePrefab = _recipeListVBox.GetNode<HBoxContainer>("RecipePrefab");
+            _recipePrefab.Visible = false;
             _closeShopBtn = _workshopCraftingModal.GetNode<Button>("MainVBox/CloseShopBtn");
 
-            // Inventory Modal
             _inventoryModal = overlay.GetNode<PanelContainer>("InventoryModal");
             _itemListVBox = _inventoryModal.GetNode<VBoxContainer>("MainVBox/ScrollArea/ItemListVBox");
             _itemPrefab = _itemListVBox.GetNode<HBoxContainer>("ItemPrefab");
+            _itemPrefab.Visible = false;
             _closeInventoryBtn = _inventoryModal.GetNode<Button>("MainVBox/CloseInventoryBtn");
 
             _openLogsButton = stack.GetNode<Button>("PersistentBottomDock/DockHBox/OpenLogsButton");
-
-            // Logs & Reports Modal
             _logsReportsModal = overlay.GetNode<PanelContainer>("LogsReportsModal");
             _closeLogsBtn = _logsReportsModal.GetNode<Button>("MainVBox/HeaderHBox/CloseLogsBtn");
             _logsVBox = _logsReportsModal.GetNode<VBoxContainer>("MainVBox/TabContainer/Logs/LogsVBox");
             _reportListVBox = _logsReportsModal.GetNode<VBoxContainer>("MainVBox/TabContainer/Reports/ReportListScroll/ReportListVBox");
             _reportContentText = _logsReportsModal.GetNode<RichTextLabel>("MainVBox/TabContainer/Reports/ReportContentText");
-
-            // Ενεργοποίηση BBCode για το RichTextLabel ώστε να υποστηρίζει έντονα γράμματα [b]
             _reportContentText.BbcodeEnabled = true;
 
-            _gameOverModal = overlay.GetNode<Control>("GameOverModal");
+            // --- Diagnostic Terminal (City Calculator) ---
+            var diagnosticTerminal = overlay.GetNode<PanelContainer>("DiagnosticTerminalModal");
+            _targetCityTempSlider = diagnosticTerminal.GetNode<HSlider>("TerminalVBox/TabContainer/CityHeatingTab/HeatingCalculatorVBox/TargetTemperatureSlider");
+            _cityHeatPredictionLabel = diagnosticTerminal.GetNode<Label>("TerminalVBox/TabContainer/CityHeatingTab/HeatingCalculatorVBox/PredictionAlertLabel");
 
-            // Βρες το Label και το Κουμπί. Προσάρμοσε τα paths ανάλογα με το πώς τα έχεις ονομάσει στο Godot!
-            // Αν το GameOverModal είναι VBox, μπορεί να είναι απλά "ReasonLabel".
+            _gameOverModal = overlay.GetNode<Control>("GameOverModal");
             _gameOverReasonLabel = _gameOverModal.GetNode<Label>("GameOverVBox/ReasonLabel");
             _gameOverRestartBtn = _gameOverModal.GetNode<Button>("GameOverVBox/RestartButton");
             _finalStatsLabel = _gameOverModal.GetNode<RichTextLabel>("GameOverVBox/FinalStatsLabel");
-            // Το κρύβουμε στην αρχή
             _gameOverModal.Visible = false;
         }
 
-        // Βοηθητική μέθοδος για την εύκολη ανάκτηση των κόμβων κάθε εργασίας
         private void BindJobCard(Node parent, string nodeName, JobType type)
         {
-            var container = parent.GetNode<PanelContainer>(nodeName);
-            var vbox = container.GetNode<VBoxContainer>("JobVBox");
+            var container = parent.GetNodeOrNull<PanelContainer>(nodeName);
+            if (container == null) return; // Fail-safe σε περίπτωση που δεν έχεις φτιάξει ακόμα τον κόμβο
 
-            var nameLabel = vbox.GetNode<Label>("HeaderHBox/JobNameLabel"); 
+            var vbox = container.GetNode<VBoxContainer>("JobVBox");
+            var nameLabel = vbox.GetNode<Label>("HeaderHBox/JobNameLabel");
 
             var card = new JobCardUI
             {
-                BaseName = nameLabel.Text, 
+                BaseName = nameLabel.Text,
                 JobNameLabel = nameLabel,
                 HazardLabel = vbox.GetNode<Label>("HeaderHBox/HazardLabel"),
                 JobProgressBar = vbox.GetNode<ProgressBar>("JobProgressBar"),
@@ -286,21 +278,18 @@ namespace PermafrostChieftain.Orchestration
 
         private void BindInputEvents()
         {
-            // Το κουμπί εκτόνωσης πλέον ανοίγει το Modal (αν ο χρόνος έχει μηδενιστεί)
             _ventActuatorButton.Pressed += OnMainCenterButtonPressed;
 
-            // Σύνδεση των sliders για ανανέωση των κειμένων κατά την κίνηση
             _cityVentSlider.ValueChanged += _ => UpdateVentRoutingValues();
             _workshopVentSlider.ValueChanged += _ => UpdateVentRoutingValues();
             _drillVentSlider.ValueChanged += _ => UpdateVentRoutingValues();
-            _atmosphereVentSlider.ValueChanged += _ => UpdateVentRoutingValues(); 
-            _blowoutButton.Pressed += () => _gameOrchestrator.TriggerEmergencyBlowout();
+            _atmosphereVentSlider.ValueChanged += _ => UpdateVentRoutingValues();
+
             _confirmVentButton.Pressed += OnConfirmVentRouting;
             _adminPanelButton.Pressed += () => _adminPanelModal.Visible = true;
-            _microBleedTargetDropdown.ItemSelected += (index) =>
-            {
-                _gameOrchestrator.JobManager.ActiveMicroBleedTarget = (MicroBleedTarget)index;
-            };
+
+            // Διαχείριση City Heating Calculator
+            _targetCityTempSlider.ValueChanged += (val) => _gameOrchestrator.Thermo.SetTargetCityTemperature(val);
 
             _openShopButton.Pressed += OpenShopModal;
             _closeShopBtn.Pressed += () => _workshopCraftingModal.Visible = false;
@@ -311,72 +300,61 @@ namespace PermafrostChieftain.Orchestration
             _openLogsButton.Pressed += () => _logsReportsModal.Visible = true;
             _closeLogsBtn.Pressed += () => _logsReportsModal.Visible = false;
 
-            _gameOverRestartBtn.Pressed += () =>
-            {
-                // Αυτό κάνει "hard reset" σε όλο το παιχνίδι!
-                GetTree().ReloadCurrentScene();
-            };
+            _gameOverRestartBtn.Pressed += () => GetTree().ReloadCurrentScene();
         }
+
         private void OnMainCenterButtonPressed()
         {
-            if (!_gameOrchestrator.IsGeneratorActive)
-            {
-                // Αν η γεννήτρια είναι κλειστή, το κουμπί κάνει Ανάφλεξη
-                _gameOrchestrator.StartBoilerSequence();
-            }
-            else
-            {
-                // Αν δουλεύει, λειτουργεί ως κουμπί Εκτόνωσης
-                _gameOrchestrator.Clock.TriggerVentModal();
-            }
+            _gameOrchestrator.Clock.TriggerVentModal();
         }
+
         private void OpenShopModal()
         {
             _workshopCraftingModal.Visible = true;
 
-            // Καθαρισμός παλιών εγγραφών (εκτός από το Prefab)
             foreach (Node child in _recipeListVBox.GetChildren())
             {
                 if (child != _recipePrefab) child.QueueFree();
             }
 
-            // Δημιουργία λίστας με βάση τις συνταγές στα Settings
-            foreach (var kvp in GameSettings.Instance.CraftingRecipes)
+            foreach (var recipe in RecipeRegistry.Recipes)
             {
-                string recipeName = kvp.Key;
-                var recipe = kvp.Value;
-
                 var newItem = (HBoxContainer)_recipePrefab.Duplicate();
                 newItem.Visible = true;
                 _recipeListVBox.AddChild(newItem);
 
-                newItem.GetNode<Label>("RecipeName").Text = recipeName;
-                newItem.GetNode<Label>("CostLabel").Text = $"Cost: {recipe.ScrapCost} Scrap | {recipe.ElectricityCost} kW | {(recipe.BaseWorkTime / 60):F0}m";
+                newItem.GetNode<Label>("RecipeName").Text = recipe.ItemName;
+                newItem.GetNode<Label>("CostLabel").Text = $"Cost: {recipe.RefinedMetalCost} Metal | {recipe.WorkRequired}s";
 
                 var craftBtn = newItem.GetNode<Button>("CraftBtn");
 
-                // --- ΝΕΟ: Έλεγχος & Χρωματισμός της ενεργής συνταγής ---
-                if (_gameOrchestrator.JobManager.ActiveCraftingRecipe == recipeName)
+                // Ορίζουμε το active job βάσει της συνταγής
+                if (_activeCraftingJob == recipe.AssociatedJob)
                 {
-                    newItem.Modulate = new Color(0.2f, 1f, 0.2f); // Πράσινο χρώμα για τη γραμμή που κατασκευάζεται
-                    craftBtn.Text = "CRAFTING...";
-                    craftBtn.Disabled = true; // Δεν χρειάζεται να το ξαναπατήσει
+                    newItem.Modulate = new Color(0.2f, 1f, 0.2f);
+                    craftBtn.Text = "ACTIVE";
+                    craftBtn.Disabled = true;
                 }
                 else
                 {
-                    newItem.Modulate = new Color(1f, 1f, 1f); // Λευκό (κανονικό) χρώμα για τα υπόλοιπα
-                    craftBtn.Text = "CRAFT";
+                    newItem.Modulate = new Color(1f, 1f, 1f);
+                    craftBtn.Text = "SELECT";
                     craftBtn.Disabled = false;
                 }
 
                 craftBtn.Pressed += () =>
                 {
-                    bool success = _gameOrchestrator.QueueCraftingRecipe(recipeName);
-                    if (success)
+                    _activeCraftingJob = recipe.AssociatedJob;
+
+                    // Αλλάζουμε δυναμικά το Binding της κάρτας WorkshopMachining στο νέο JobType!
+                    if (_jobCards.ContainsKey(JobType.WorkshopCraftPatch))
                     {
-                        // ΣΗΜΑΝΤΙΚΟ: Δεν κλείνουμε το modal. Το ξανακαλούμε για να εφαρμόσει αμέσως τα νέα χρώματα!
-                        OpenShopModal();
+                        var card = _jobCards[JobType.WorkshopCraftPatch];
+                        // Αδειάζουμε τους εργάτες από την παλιά συνταγή
+                        _gameOrchestrator.Population.TryAdjustWorkers(JobType.WorkshopCraftPatch, -card.StaffingLabel.Text.ToInt());
                     }
+
+                    OpenShopModal(); // Refresh UI
                 };
             }
         }
@@ -387,13 +365,10 @@ namespace PermafrostChieftain.Orchestration
             RefreshInventoryList();
         }
 
-        // Αυτή η μέθοδος ανανεώνει τη λίστα του Inventory. 
-        // Την έχουμε ξεχωριστά ώστε να μπορούμε να την καλούμε και από το OnTelemetryUpdated αν θέλουμε live μπάρες.
         private void RefreshInventoryList()
         {
-            if (!_inventoryModal.Visible) return;
+            if (!_inventoryModal.Visible || _gameOrchestrator.Inventory == null) return;
 
-            // Καθαρισμός παλιών εγγραφών (εκτός από το Prefab)
             foreach (Node child in _itemListVBox.GetChildren())
             {
                 if (child != _itemPrefab) child.QueueFree();
@@ -401,8 +376,7 @@ namespace PermafrostChieftain.Orchestration
 
             foreach (var item in _gameOrchestrator.Inventory.Items)
             {
-                // Αν έσπασε, δεν το δείχνουμε (ή μπορούμε να το δείχνουμε κόκκινο)
-                if (item.Durability <= 0) continue;
+                if (item.Durability <= 0 && item.Category == ItemCategory.Equippable) continue;
 
                 var newRow = (HBoxContainer)_itemPrefab.Duplicate();
                 newRow.Visible = true;
@@ -411,25 +385,30 @@ namespace PermafrostChieftain.Orchestration
                 newRow.GetNode<Label>("ItemNameLabel").Text = item.Name;
 
                 var bar = newRow.GetNode<ProgressBar>("DurabilityBar");
-                bar.Value = item.Durability;
-
                 var equipBtn = newRow.GetNode<Button>("EquipBtn");
-                equipBtn.Text = item.IsEquipped ? "UNEQUIP" : "EQUIP";
-                equipBtn.Modulate = item.IsEquipped ? new Color(0.2f, 1f, 0.2f) : new Color(1f, 1f, 1f);
 
-                equipBtn.Pressed += () =>
+                if (item.Category == ItemCategory.Consumable)
                 {
-                    if (item.IsEquipped)
+                    // Tα αναλώσιμα δεν εξοπλίζονται[cite: 8]
+                    equipBtn.Visible = false;
+                    bar.Visible = false;
+                }
+                else
+                {
+                    equipBtn.Visible = true;
+                    bar.Visible = true;
+                    bar.Value = item.Durability;
+
+                    equipBtn.Text = item.IsEquipped ? "UNEQUIP" : "EQUIP";
+                    equipBtn.Modulate = item.IsEquipped ? new Color(0.2f, 1f, 0.2f) : new Color(1f, 1f, 1f);
+
+                    equipBtn.Pressed += () =>
                     {
-                        _gameOrchestrator.Inventory.UnequipItem(item.Name);
-                    }
-                    else
-                    {
-                        _gameOrchestrator.Inventory.EquipItem(item.Name);
-                    }
-                    // Ανανέωση του UI αμέσως μετά το πάτημα
-                    RefreshInventoryList();
-                };
+                        if (item.IsEquipped) _gameOrchestrator.Inventory.UnequipItem(item.Name);
+                        else _gameOrchestrator.Inventory.EquipItem(item.Name);
+                        RefreshInventoryList();
+                    };
+                }
             }
         }
 
@@ -443,13 +422,10 @@ namespace PermafrostChieftain.Orchestration
             double total = city + workshop + drill + atmosphere;
             double currentPressure = _gameOrchestrator.Boiler.SteamPressure;
 
-            // Αμυντικός έλεγχος μήπως τα sliders υπερβαίνουν τη διαθέσιμη πίεση
             if (total > currentPressure) return;
 
-            // Το 5ο στοιχείο (retain) υπολογίζεται αυτόματα από τον Orchestrator, 
-            // στέλνουμε τα 4 που διάλεξε ενεργά ο παίκτης.
             _ventRoutingModal.Visible = false;
-            _gameOrchestrator.ExecuteVentRouting(city, workshop, drill, atmosphere);
+            _gameOrchestrator.ExecuteRoutingPanel(drill, city, workshop, atmosphere);
         }
 
         private void UpdateVentRoutingValues()
@@ -457,13 +433,11 @@ namespace PermafrostChieftain.Orchestration
             double currentPressure = _gameOrchestrator.Boiler.SteamPressure;
             double totalUsed = _cityVentSlider.Value + _workshopVentSlider.Value + _drillVentSlider.Value + _atmosphereVentSlider.Value;
 
-            // Ενημέρωση των ετικετών (Labels) με τις τρέχουσες επιλογές
             _cityVentValue.Text = $"{_cityVentSlider.Value:F0} Bar";
             _workshopVentValue.Text = $"{_workshopVentSlider.Value:F0} Bar";
             _drillVentValue.Text = $"{_drillVentSlider.Value:F0} Bar";
             _atmosphereVentValue.Text = $"{_atmosphereVentSlider.Value:F0} Bar";
 
-            // Υπολογισμός και εμφάνιση της πίεσης που θα παραμείνει στον λέβητα
             double retained = Math.Max(0, currentPressure - totalUsed);
 
             if (totalUsed > currentPressure)
@@ -475,188 +449,168 @@ namespace PermafrostChieftain.Orchestration
             else
             {
                 _retainVentValue.Text = $"Retained Pressure: {retained:F1} Bar";
-                _retainVentValue.Modulate = new Color(0.2f, 1f, 0.2f); // Πράσινο για να φαίνεται ασφαλές
+                _retainVentValue.Modulate = new Color(0.2f, 1f, 0.2f);
                 _confirmVentButton.Disabled = false;
             }
         }
 
         private void OnTelemetryUpdated()
         {
-            var b = _gameOrchestrator.LatestBoilerTelemetry;
-            var t = _gameOrchestrator.LatestThermodynamicTelemetry;
-            var w = _gameOrchestrator.LatestWorkforceTelemetry;
-            var l = _gameOrchestrator.LatestLogisticsTelemetry;
+            var telemetry = _gameOrchestrator.GetTelemetrySnapshot();
+            var b = telemetry.Boiler;
+            var t = telemetry.Thermo;
+            var w = telemetry.Workforce;
+            var l = telemetry.Logistics;
 
-            // --- Ενημέρωση Κεφαλίδας (Header) ---
+            // --- Κεφαλίδα ---
             _coalLabel.Text = $"Coal: {l.CoalStockpile:F0} kg";
-            _scrapLabel.Text = $"Scrap: {l.ScrapStockpile:F0}";
+            _scrapLabel.Text = $"Scrap: {l.RawScrap:F0}";
             _relayLabel.Text = $"Relay: {l.Electricity:F1} kW";
             _cityTempLabel.Text = $"City: {t.CityTemperature:F1}°C";
             _totalPopLabel.Text = $"Pop: {w.TotalPopulation}";
             _healthyCountLabel.Text = $"H: {w.HealthyWorkers}";
             _sickCountLabel.Text = $"S: {w.SickWorkers}";
 
-            // --- Ενημέρωση Λέβητα (Boiler) ---
-            _pressureTitleLabel.Text = $"PRESSURE: {b.SteamPressure:F1} / 200 Bar";
+            // --- Πάνελ Λέβητα ---
+            _pressureTitleLabel.Text = $"PRESSURE: {b.SteamPressure:F1} Bar";
             _pressureGaugeBar.Value = b.SteamPressure;
             _coreTempLabel.Text = $"CORE: {t.CoreTemperature:F0}°C";
 
+            // Επίπεδο Στρες
+            _stressGaugeBar.Value = b.StressLevel;
+
             _casingTitleLabel.Text = $"HULL: {b.CasingIntegrity:F1}%";
             _casingIntegrityBar.Value = b.CasingIntegrity;
+
+            // Εικονίδιο ρήγματος
+            if (_hullCrackAlertIcon != null) _hullCrackAlertIcon.Visible = b.IsHullCracked;
+
             _sootTitleLabel.Text = $"SOOT: {b.SootFraction * 100.0:F1}%";
             _sootFoulingBar.Value = b.SootFraction * 100.0;
-            _blowoutButton.Disabled = b.SteamPressure < GameSettings.Instance.BlowoutPressureCost;
-            // Ενημέρωση ενδείξεων των Ασφαλειών (Fuses)
+
+            // Οπτικοποίηση Ασφαλειών (Fuses) από το Inventory
+            int fuseCount = _gameOrchestrator.Inventory.GetConsumableCount("Boiler Fuse");
             var children = _fuseRackContainer.GetChildren();
             for (int i = 0; i < children.Count; i++)
             {
                 if (children[i] is Control fuseIcon)
                 {
-                    fuseIcon.Modulate = (i < b.AvailableFuses) ? new Color(1, 1, 1, 1) : new Color(0.3f, 0.3f, 0.3f, 0.35f);
+                    fuseIcon.Modulate = (i < fuseCount) ? new Color(1, 1, 1, 1) : new Color(0.3f, 0.3f, 0.3f, 0.35f);
                 }
             }
 
-            // --- Ενημέρωση Ρολογιού & Κουμπιού Εκτόνωσης ---
-            _cycleClockLabel.Text = $"TIME: {_gameOrchestrator.Clock.GetFormattedTimeOfDay()}";
-            _shiftCountdownLabel.Text = $"NEXT VENT: {b.SecondsUntilNextVent:F0}s";
+            // --- Χρονόμετρο & Φάσεις ---
+            _cycleClockLabel.Text = $"TIME: {b.FormattedTimeOfDay}";
+            if (_currentPhaseLabel != null) _currentPhaseLabel.Text = b.CurrentPhase.ToString();
 
-            // Το κουμπί ενεργοποιείται μόνο στη φάση VentPending
-            //_ventActuatorButton.Disabled = b.CurrentPhase != CyclePhase.VentPending;
-            // --- ΔΥΝΑΜΙΚΟ ΚΕΝΤΡΙΚΟ ΚΟΥΜΠΙ (ΑΝΑΦΛΕΞΗ Ή ΕΚΤΟΝΩΣΗ) ---
-            if (!_gameOrchestrator.IsGeneratorActive)
+            // Δυναμική αλλαγή του αντίστροφου χρονομέτρου ανάλογα με τη φάση
+            if (b.CurrentPhase == CyclePhase.NightBleed)
             {
-                // Εμφάνιση κόστους ανάφλεξης
-                if (_ventActuatorButton != null)
-                {
-                    _ventActuatorButton.Visible = true;
-                    _ventActuatorButton.Text = $"IGNITE GENERATOR (-{GameSettings.Instance.IgnitionCoalCost} COAL)";
-                    _ventActuatorButton.Disabled = _gameOrchestrator.Logistics.CoalStockpile < GameSettings.Instance.IgnitionCoalCost;
-                    _ventActuatorButton.Modulate = new Color(1f, 0.5f, 0.2f);
-                }
+                double timeToDawn = GameSettings.Instance.NightDuration - _gameOrchestrator.Clock.PhaseElapsedSeconds;
+                TimeSpan ts = TimeSpan.FromSeconds(timeToDawn);
+                _shiftCountdownLabel.Text = $"DAWN IN: {ts.ToString(@"hh\:mm\:ss")}";
+            }
+            else if (b.CurrentPhase == CyclePhase.TwilightWindDown)
+            {
+                double timeToNight = GameSettings.Instance.TwilightDuration - _gameOrchestrator.Clock.PhaseElapsedSeconds;
+                TimeSpan ts = TimeSpan.FromSeconds(timeToNight);
+                _shiftCountdownLabel.Text = $"NIGHT IN: {ts.ToString(@"mm\:ss")}";
             }
             else
             {
-                if (_ventActuatorButton != null)
-                {
-                    _ventActuatorButton.Modulate = new Color(1f, 1f, 1f);
+                _shiftCountdownLabel.Text = $"NEXT VENT: {b.SecondsUntilNextVent:F0}s";
+            }
 
-                    if (_gameOrchestrator.LatestBoilerTelemetry.CurrentPhase == CyclePhase.VentPending)
-                    {
-                        _ventActuatorButton.Text = "ACTUATE DECOMPRESSION LEVER [READY]";
-                        _ventActuatorButton.Disabled = false;
-                    }
-                    else
-                    {
-                        _ventActuatorButton.Text = $"ACTUATE DECOMPRESSION LEVER [LOCKED > {_gameOrchestrator.LatestBoilerTelemetry.SecondsUntilNextVent:F0}s]";
-                        _ventActuatorButton.Disabled = true;
-                    }
+            SetShiftView(b.CurrentPhase);
+
+            // --- Δυναμικό Κεντρικό Κουμπί (Ανάφλεξη ή Εκτόνωση) ---
+            if (_ventActuatorButton != null)
+            {
+                _ventActuatorButton.Modulate = new Color(1f, 1f, 1f);
+
+                // Εμφανίζεται μόνο την Ημέρα και κατά τη διάρκεια της Εκτόνωσης
+                _ventActuatorButton.Visible = (b.CurrentPhase == CyclePhase.VentPending ||
+                                               b.CurrentPhase == CyclePhase.VentRouting ||
+                                               b.CurrentPhase == CyclePhase.DayActive);
+
+                if (b.CurrentPhase == CyclePhase.VentPending)
+                {
+                    _ventActuatorButton.Text = "ACTUATE DECOMPRESSION LEVER [READY]";
+                    _ventActuatorButton.Disabled = false;
+                }
+                else
+                {
+                    _ventActuatorButton.Text = $"ACTUATE DECOMPRESSION LEVER [LOCKED > {b.SecondsUntilNextVent:F0}s]";
+                    _ventActuatorButton.Disabled = true;
                 }
             }
 
-            // --- Ενημέρωση Καρτών Εργασιών (Job Cards) ---
-            _unassignedReserveLabel.Text = $"Reserve Hands: {w.UnassignedReserve}";
-            _workshopHazardBar.Value = l.WorkshopHazardLevel * 100.0;
-            TimeSpan time = new TimeSpan();
-            foreach (var jobData in _gameOrchestrator.LatestJobsTelemetry)
+            // --- Υπολογιστής Θέρμανσης Πόλης ---
+            if (_targetCityTempSlider != null && _cityHeatPredictionLabel != null)
             {
-                // 1. Έλεγχος γρήγορης εξόδου (Early exit) για αποφυγή βαθιών nested if
+                _cityHeatPredictionLabel.Text = $"Steam will last for: {t.EstimatedCityHeatHours:F1} Hours";
+                if (t.EstimatedCityHeatHours < 16.0 && !ClockIsDayShift(b.CurrentPhase))
+                    _cityHeatPredictionLabel.Modulate = new Color(1, 0, 0); // Κόκκινο προειδοποιητικό
+                else
+                    _cityHeatPredictionLabel.Modulate = new Color(1, 1, 1);
+            }
+
+            // --- Κάρτες Εργασιών ---
+            _unassignedReserveLabel.Text = $"Reserve Hands: {w.UnassignedReserve}";
+
+            TimeSpan time = new TimeSpan();
+            foreach (var jobData in telemetry.Jobs)
+            {
                 if (!_jobCards.TryGetValue(jobData.Type, out JobCardUI card)) continue;
 
-                // 2. Ενημέρωση των κουμπιών και των εργατών (Ισχύει για ΟΛΕΣ τις εργασίες)
                 card.StaffingLabel.Text = $"{jobData.AssignedWorkers} Hands";
                 card.PlusBtn.Disabled = w.UnassignedReserve <= 0;
                 card.MinusBtn.Disabled = jobData.AssignedWorkers <= 0;
 
-                if (jobData.Type == JobType.StokeFurnace)
+                // Δυναμική εμφάνιση/απόκρυψη της μπάρας 
+                if (card.JobProgressBar != null) card.JobProgressBar.Visible = !jobData.IsContinuous;
+
+                if (jobData.IsContinuous)
                 {
-                    // 3. Ειδικός χειρισμός μόνο για τον φούρνο
-                    double coalPerHour = jobData.AssignedWorkers * GameSettings.Instance.StokeCoalPerWorkerPerHour;
-                    card.JobNameLabel.Text = $"{card.BaseName} - Κατανάλωση: {coalPerHour:F1} kg/h";
-                    card.JobProgressBar.Value = 100.0;
+                    card.JobNameLabel.Text = $"{card.BaseName} (Continuous)";
                 }
                 else
                 {
-                    // 4. Χειρισμός για όλες τις υπόλοιπες εργασίες
-                    card.JobProgressBar.Value = jobData.ProgressPercentage;
+                    if (card.JobProgressBar != null) card.JobProgressBar.Value = jobData.ProgressPercentage;
 
                     if (jobData.AssignedWorkers > 0)
                     {
                         double effectiveRate = Math.Pow(jobData.AssignedWorkers, 0.8);
                         double realSecondsLeft = jobData.WorkRemaining / effectiveRate;
-
-                        // 5. Βελτιστοποιημένη μορφοποίηση χρόνου
                         time = TimeSpan.FromSeconds(realSecondsLeft);
                         string format = time.TotalHours >= 1 ? @"hh\:mm\:ss" : @"mm\:ss";
-
-                        // Αν είναι μηχανουργείο, δείχνουμε ΚΑΙ το όνομα της συνταγής δίπλα στο όνομα της δουλειάς
-                        if (jobData.Type == JobType.WorkshopMachining || jobData.Type == JobType.ManualTinkering)
-                        {
-                            string recipeName = _gameOrchestrator.JobManager.ActiveCraftingRecipe;
-                            if (!string.IsNullOrEmpty(recipeName))
-                            {
-                                card.JobNameLabel.Text = $"{card.BaseName} [{recipeName}] - {time.ToString(format)}";
-                            }
-                            else
-                            {
-                                card.JobNameLabel.Text = $"{card.BaseName} - [IDLE]";
-                            }
-                        }
-                        else
-                        {
-                            card.JobNameLabel.Text = $"{card.BaseName} - {time.ToString(format)}";
-                        }
+                        card.JobNameLabel.Text = $"{card.BaseName} - {time.ToString(format)}";
                     }
                     else
                     {
-                        // Αν δεν υπάρχουν εργάτες
-                        if (jobData.Type == JobType.WorkshopMachining || jobData.Type == JobType.ManualTinkering)
-                        {
-                            string recipeName = _gameOrchestrator.JobManager.ActiveCraftingRecipe;
-                            if (!string.IsNullOrEmpty(recipeName))
-                            {
-                                card.JobNameLabel.Text = $"{card.BaseName} [{recipeName}] - [ΠΑΥΣΗ/ΑΝΑΜΟΝΗ ΠΡΟΣΩΠΙΚΟΥ]";
-                            }
-                            else
-                            {
-                                card.JobNameLabel.Text = $"{card.BaseName} - [IDLE]";
-                            }
-                        }
-                        else
-                        {
-                            card.JobNameLabel.Text = $"{card.BaseName} - [ΠΑΥΣΗ]";
-                        }
+                        card.JobNameLabel.Text = $"{card.BaseName} - [IDLE]";
                     }
                 }
             }
-            RefreshInventoryList();
         }
 
-        private void OnPhaseTransitionTriggered(int newPhase)
+        private bool ClockIsDayShift(CyclePhase phase)
         {
-            SetShiftView((CyclePhase)newPhase);
+            return phase != CyclePhase.NightBleed;
         }
 
         private void SetShiftView(CyclePhase phase)
         {
-            // Ημέρα: Εμφάνιση του DayShiftView
-            _dayShiftView.Visible = (phase == CyclePhase.DayActive || phase == CyclePhase.VentPending || phase == CyclePhase.TwilightWindDown);
+            _dayShiftView.Visible = ClockIsDayShift(phase);
+            _nightShiftView.Visible = !ClockIsDayShift(phase);
 
-            // Νύχτα: Εμφάνιση του NightShiftView
-            _nightShiftView.Visible = (phase == CyclePhase.NightBleed);
-
-            // Modal Εκτόνωσης
-            if (phase == CyclePhase.VentRouting)
+            if (phase == CyclePhase.VentRouting && !_ventRoutingModal.Visible)
             {
                 double currentPressure = _gameOrchestrator.Boiler.SteamPressure;
                 _routingTitleLabel.Text = $"DECOMPRESSION ROUTING - {currentPressure:F0} BAR AVAILABLE";
-
-                // Επαναφορά των sliders στο 0
-                _cityVentSlider.Value = 0;
-                _workshopVentSlider.Value = 0;
-                _drillVentSlider.Value = 0;
-                _atmosphereVentSlider.Value = 0;
+                _cityVentSlider.Value = 0; _workshopVentSlider.Value = 0;
+                _drillVentSlider.Value = 0; _atmosphereVentSlider.Value = 0;
                 _atmosphereVentSlider.MaxValue = currentPressure;
-                // Ορισμός της μέγιστης επιτρεπτής τιμής κάθε slider (δεν μπορεί να ξεπερνά τη συνολική πίεση)
                 _cityVentSlider.MaxValue = currentPressure;
                 _workshopVentSlider.MaxValue = currentPressure;
                 _drillVentSlider.MaxValue = currentPressure;
@@ -664,80 +618,25 @@ namespace PermafrostChieftain.Orchestration
                 UpdateVentRoutingValues();
                 _ventRoutingModal.Visible = true;
             }
-            else
+            else if (phase != CyclePhase.VentRouting)
             {
                 _ventRoutingModal.Visible = false;
             }
         }
 
-        private void OnLogDispatched(double timeInSeconds, string severity, string category, string message)
+        private void OnGameEventReceived(string message)
         {
-            // Μετατροπή του χρόνου σε HH:MM
-            TimeSpan time = TimeSpan.FromSeconds(timeInSeconds);
-            string formattedTime = time.ToString(@"hh\:mm");
-
-            // Δημιουργία ενός νέου Label για το Log
             Label logLabel = new Label();
-            logLabel.Text = $"[{formattedTime}] [{category}] {message}";
-            logLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 
-            // Χρωματισμός βάσει σοβαρότητας (Severity)
-            if (severity == "CRITICAL") logLabel.Modulate = new Color(1, 0.2f, 0.2f);
-            else if (severity == "WARNING") logLabel.Modulate = new Color(1, 1, 0.2f);
-            else logLabel.Modulate = new Color(0.8f, 0.8f, 0.8f);
+            // Παίρνουμε την ώρα απευθείας από το κεντρικό ρολόι του Orchestrator
+            string currentTime = _gameOrchestrator.Clock.GetFormattedTimeOfDay();
+
+            logLabel.Text = $"[{currentTime}] {message}";
+            logLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            logLabel.Modulate = new Color(0.8f, 0.8f, 0.8f);
 
             _logsVBox.AddChild(logLabel);
-            _logsVBox.MoveChild(logLabel, 0); // Βάζει το νεότερο log στην κορυφή της λίστας
-        }
-
-        private void OnShiftReportGenerated(string title, string content)
-        {
-            // Δημιουργία ενός νέου κουμπιού στη λίστα των Reports
-            Button reportBtn = new Button();
-            reportBtn.Text = title;
-            reportBtn.CustomMinimumSize = new Vector2(0, 40);
-            
-            // Όταν πατιέται το κουμπί, το κείμενο δεξιά ανανεώνεται με το περιεχόμενο της αναφοράς
-            reportBtn.Pressed += () => 
-            {
-                _reportContentText.Text = content;
-            };
-
-            _reportListVBox.AddChild(reportBtn);
-            _reportListVBox.MoveChild(reportBtn, 0); // Βάζει το νεότερο report στην κορυφή
-            
-            // Προαιρετικά: Αυτόματη προβολή της νεότερης αναφοράς
-            _reportContentText.Text = content;
-        }
-
-        private void OnGameOverTriggered(string reason, double runUptimeSec, int runDeaths)
-        {
-            _gameOverModal.Visible = true;
-            _gameOverReasonLabel.Text = reason;
-            _gameOverRestartBtn.Modulate = new Color(0.2f, 1f, 0.2f);
-
-            // Μορφοποίηση του χρόνου του τρέχοντος Run
-            TimeSpan runTime = TimeSpan.FromSeconds(runUptimeSec);
-            string formattedRunTime = $"{(int)runTime.TotalHours}h {runTime.Minutes}m";
-
-            // Μορφοποίηση του συνολικού χρόνου (Lifetime)
-            TimeSpan lifeTime = TimeSpan.FromSeconds(PlayerStats.Instance.LifetimeGeneratorUptime);
-            string formattedLifeTime = $"{(int)lifeTime.TotalHours}h {lifeTime.Minutes}m";
-
-            // Δημιουργία του τελικού κειμένου με BBCode (Markdown για RichText)
-            string statsText = "[center][b]--- ΑΝΑΦΟΡΑ ΒΑΡΔΙΑΣ ---[/b][/center]\n\n";
-
-            statsText += "[b]ΤΡΕΧΟΥΣΑ ΠΡΟΣΠΑΘΕΙΑ[/b]\n";
-            statsText += $"Χρόνος Λειτουργίας Λέβητα: [color=green]{formattedRunTime}[/color]\n";
-            statsText += $"Απώλειες Προσωπικού: [color=red]{runDeaths}[/color] εργάτες\n\n";
-
-            statsText += "[b]ΙΣΤΟΡΙΚΟ ΑΡΧΕΙΟ (LIFETIME)[/b]\n";
-            statsText += $"Συνολικές Προσπάθειες: {PlayerStats.Instance.TotalRunsPlayed}\n";
-            statsText += $"Συνολικός Χρόνος Λειτουργίας: {formattedLifeTime}\n";
-            statsText += $"Συνολικές Απώλειες: {PlayerStats.Instance.LifetimeWorkersLost} εργάτες\n";
-
-            // Εμφάνιση στο UI
-            _finalStatsLabel.Text = statsText;
+            _logsVBox.MoveChild(logLabel, 0);
         }
     }
 }
