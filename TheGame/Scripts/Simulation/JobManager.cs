@@ -188,7 +188,6 @@ namespace PermafrostChieftain.Simulation
             {
                 if (job.AssignedWorkers <= 0) continue;
 
-                // Χρήση του Effective Workers για την πρόοδο της δουλειάς
                 double workGenerated = job.GetEffectiveWorkers() * deltaTime;
 
                 switch (job.Type)
@@ -208,16 +207,18 @@ namespace PermafrostChieftain.Simulation
                     case JobType.DaytimePatch:
                         if (!isDayShift || !boiler.IsHullCracked) break;
 
-                        if (job.WorkRemaining == GameSettings.Instance.PatchWorkRequired)
-                        {
-                            // Κατανάλωση Metal Patch από το Inventory (ΟΧΙ από τα Logistics)
-                            if (!inventory.TryConsumeItem("Metal Patch")) break;
-                        }
+                        // Ελέγχουμε αν έχουμε το Patch πριν κάνουμε δουλειά, χωρίς να το καταναλώσουμε ακόμα
+                        if (!inventory.TryConsumeItem("Metal Patch")) break;
 
                         job.WorkRemaining -= workGenerated;
+
                         if (job.WorkRemaining <= 0)
                         {
-                            boiler.ApplyMetalPatch();
+                            // Τώρα που τελείωσε η δουλειά, καταναλώνουμε το αντικείμενο και φτιάχνουμε την τρύπα
+                            if (inventory.TryConsumeItem("Metal Patch"))
+                            {
+                                boiler.ApplyMetalPatch();
+                            }
                             job.SetWorkRemaining(GameSettings.Instance.PatchWorkRequired);
                         }
                         break;
@@ -225,24 +226,23 @@ namespace PermafrostChieftain.Simulation
                     case JobType.NightHullRepair:
                         if (isDayShift || boiler.CasingIntegrity >= 100.0) break;
 
-                        if (job.WorkRemaining == GameSettings.Instance.NightRepairWorkRequired)
-                        {
-                            if (!logistics.TryConsumeRefinedMetal(GameSettings.Instance.NightRepairRefinedMetalCost)) break;
-                        }
+                        // Πρέπει να έχουμε το μέταλλο για να προχωρήσει η δουλειά
+                        if (logistics.RefinedMetal < GameSettings.Instance.NightRepairRefinedMetalCost) break;
 
                         job.WorkRemaining -= workGenerated;
+
                         if (job.WorkRemaining <= 0)
                         {
-                            boiler.RepairIntegrity(GameSettings.Instance.NightRepairIntegrityRestored);
+                            if (logistics.TryConsumeRefinedMetal(GameSettings.Instance.NightRepairRefinedMetalCost))
+                            {
+                                boiler.RepairIntegrity(GameSettings.Instance.NightRepairIntegrityRestored);
+                            }
                             job.SetWorkRemaining(GameSettings.Instance.NightRepairWorkRequired);
                         }
                         break;
 
                     case JobType.WorkshopCraftPatch:
-                        if (job.WorkRemaining == GameSettings.Instance.CraftMetalPatchWorkRequired)
-                        {
-                            if (!logistics.TryConsumeRefinedMetal(GameSettings.Instance.CraftMetalPatchRefinedMetalCost)) break;
-                        }
+                        if (logistics.RefinedMetal < GameSettings.Instance.CraftMetalPatchRefinedMetalCost) break;
 
                         double patchSpeed = 1.0;
                         if (isDayShift && logistics.TryConsumeElectricity(job.GetEffectiveWorkers() * GameSettings.Instance.WorkshopElectricityConsumptionPerWorker * deltaTime))
@@ -254,20 +254,17 @@ namespace PermafrostChieftain.Simulation
 
                         if (job.WorkRemaining <= 0)
                         {
-                            // Προσθήκη Metal Patch στο Inventory
-                            inventory.AddItem("Metal Patch", ItemCategory.Consumable);
+                            if (logistics.TryConsumeRefinedMetal(GameSettings.Instance.CraftMetalPatchRefinedMetalCost))
+                            {
+                                inventory.AddItem("Metal Patch", ItemCategory.Consumable);
+                            }
                             job.SetWorkRemaining(GameSettings.Instance.CraftMetalPatchWorkRequired);
                         }
                         break;
 
                     case JobType.WorkshopCraftFuse:
-                        // Διαβάζουμε πόσα Fuses έχουμε από το Inventory
                         if (inventory.GetConsumableCount("Boiler Fuse") >= GameSettings.Instance.MaxFuses) break;
-
-                        if (job.WorkRemaining == GameSettings.Instance.CraftFuseWorkRequired)
-                        {
-                            if (!logistics.TryConsumeRefinedMetal(GameSettings.Instance.CraftFuseRefinedMetalCost)) break;
-                        }
+                        if (logistics.RefinedMetal < GameSettings.Instance.CraftFuseRefinedMetalCost) break;
 
                         double fuseSpeed = 1.0;
                         if (isDayShift && logistics.TryConsumeElectricity(job.GetEffectiveWorkers() * GameSettings.Instance.WorkshopElectricityConsumptionPerWorker * deltaTime))
@@ -279,8 +276,10 @@ namespace PermafrostChieftain.Simulation
 
                         if (job.WorkRemaining <= 0)
                         {
-                            // Προσθήκη Fuse στο Inventory
-                            inventory.AddItem("Boiler Fuse", ItemCategory.Consumable);
+                            if (logistics.TryConsumeRefinedMetal(GameSettings.Instance.CraftFuseRefinedMetalCost))
+                            {
+                                inventory.AddItem("Boiler Fuse", ItemCategory.Consumable);
+                            }
                             job.SetWorkRemaining(GameSettings.Instance.CraftFuseWorkRequired);
                         }
                         break;

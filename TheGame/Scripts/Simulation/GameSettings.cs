@@ -10,14 +10,17 @@ namespace PermafrostChieftain.Simulation
 
         public double StressBreakGracePeriod { get; set; } = 30.0;
         public double BaseStressReliefRate { get; set; } = 1.0;
-
-        public double StokerCoalConsumptionPerWorker { get; set; } = 0.2;
+        // Το ρίσκο να χτυπήσει (έγκαυμα/ατύχημα) κάποιος που δουλεύει ΠΑΝΩ στη γεννήτρια ανά λεπτό
+        public double GeneratorJobInjuryRate { get; set; } = 0.02; // 2% πιθανότητα ανά λεπτό
+        // Πόσο αυξάνεται το ρίσκο ατυχήματος για ΚΑΘΕ εργάτη που ξεπερνά το OptimalWorkers της δουλειάς
+        public double OvercrowdingHazardPenalty { get; set; } = 0.01; // +1% ρίσκο ανά επιπλέον άτομο
+        public double StokerCoalConsumptionPerWorker { get; set; } = 0.05;
 
         // Το Θερμικό Σοκ: Πόσους βαθμούς χάνει ο πυρήνας για κάθε 1 Bar που ρουφάει η Τουρμπίνα χειροκίνητα
         public double TurbineThermalShockPerBar { get; set; } = 2.0;
 
         // Η θερμική μάζα της γεννήτριας (όσο μεγαλύτερο, τόσο πιο αργά ζεσταίνεται και κρυώνει)
-        public double CoreThermalMass { get; set; } = 25.0;
+        public double CoreThermalMass { get; set; } = 400.0;
 
         // Όταν περάσουμε το σημείο βρασμού, το 60% της καθαρής ενέργειας γίνεται Ατμός 
         // και μόνο το 40% πάει στο να ανεβάσει κι άλλο τη θερμοκρασία του πυρήνα!
@@ -59,7 +62,7 @@ namespace PermafrostChieftain.Simulation
         public double OptimalCoreTemp { get; set; } = 750.0;
 
         // Πόσος ατμός (πίεση) παράγεται ανά δευτερόλεπτο όταν βράζει το νερό
-        public double BaseSteamGenerationRate { get; set; } = 0.5;
+        public double BaseSteamGenerationRate { get; set; } = 0.05;
 
         // Πόση ενέργεια "κλέβει" το χυτήριο (Smelting) από τον πυρήνα ανά εργάτη
         public double SmeltingHeatDrainPerWorker { get; set; } = 2.5;
