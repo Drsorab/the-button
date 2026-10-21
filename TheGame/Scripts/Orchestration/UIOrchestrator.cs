@@ -26,7 +26,7 @@ namespace PermafrostChieftain.Orchestration
         private Label _totalPopLabel, _healthyCountLabel, _sickCountLabel, _gravelySickCountLabel;
 
         // ΝΕΑ ΣΤΟΙΧΕΙΑ: Stress & Hull Alert
-        private Label _pressureTitleLabel, _coreTempLabel, _casingTitleLabel, _sootTitleLabel;
+        private Label _pressureTitleLabel, _coreTempLabel, _casingTitleLabel, _sootTitleLabel, _stressTitleLabel;
         private ProgressBar _pressureGaugeBar, _stressGaugeBar, _casingIntegrityBar, _sootFoulingBar;
         private TextureRect _hullCrackAlertIcon;
         private HBoxContainer _fuseRackContainer;
@@ -147,6 +147,7 @@ namespace PermafrostChieftain.Orchestration
 
             // --- Boiler Panel ---
             var boilerVBox = stack.GetNode<VBoxContainer>("PersistentBoilerStatusPanel/BoilerVBox");
+            _stressTitleLabel = boilerVBox.GetNode<Label>("StressRowHBox/StressTitleLabel");
             _pressureTitleLabel = boilerVBox.GetNode<Label>("PressureHeaderHBox/PressureTitleLabel");
             _coreTempLabel = boilerVBox.GetNode<Label>("PressureHeaderHBox/CoreTempLabel");
             _fuseRackContainer = boilerVBox.GetNode<HBoxContainer>("PressureHeaderHBox/FuseRackContainer");
@@ -477,7 +478,16 @@ namespace PermafrostChieftain.Orchestration
             _coreTempLabel.Text = $"CORE: {t.CoreTemperature:F0}°C";
 
             // Επίπεδο Στρες
-            _stressGaugeBar.Value = b.StressLevel;
+            double stressPercentage = (b.StressLevel / GameSettings.Instance.StressToDamageThreshold) * 100.0;
+            stressPercentage = Math.Clamp(stressPercentage, 0.0, 100.0);
+
+            if (_stressTitleLabel != null)
+            {
+                _stressTitleLabel.Text = $"STRESS {stressPercentage:F0}%";
+            }
+
+            // Η μπάρα παίρνει πλέον το ποσοστό (σιγουρέψου ότι το MaxValue της μπάρας στο Godot είναι 100)
+            _stressGaugeBar.Value = stressPercentage;
 
             _casingTitleLabel.Text = $"HULL: {b.CasingIntegrity:F1}%";
             _casingIntegrityBar.Value = b.CasingIntegrity;

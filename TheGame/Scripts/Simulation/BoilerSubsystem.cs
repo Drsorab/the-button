@@ -1,3 +1,4 @@
+using Godot;
 using System;
 
 namespace PermafrostChieftain.Simulation
@@ -77,6 +78,7 @@ namespace PermafrostChieftain.Simulation
                 if (!IsGroaning)
                 {
                     IsGroaning = true;
+                    GD.Print("ΠΡΟΕΙΔΟΠΟΙΗΣΗ: Το κέλυφος παραμορφώνεται! Εκτονώστε την πίεση!");
                     OnBoilerAlert?.Invoke("ΠΡΟΕΙΔΟΠΟΙΗΣΗ: Το κέλυφος παραμορφώνεται! Εκτονώστε την πίεση!");
                 }
 
@@ -89,7 +91,7 @@ namespace PermafrostChieftain.Simulation
                     StressLevel = 0.0; // Εκτόνωση της μηχανικής τάσης λόγω της θραύσης
                     _gracePeriodTimer = 0.0;
                     IsGroaning = false;
-
+                    GD.Print($"ΖΗΜΙΑ: Το κέλυφος υπέστη μόνιμη φθορά! Αντοχή: {CasingIntegrity:F1}%");
                     OnBoilerAlert?.Invoke($"ΖΗΜΙΑ: Το κέλυφος υπέστη μόνιμη φθορά! Αντοχή: {CasingIntegrity:F1}%");
 
                     RollForHullCrack(); // Έλεγχος για δημιουργία οπής
@@ -100,6 +102,8 @@ namespace PermafrostChieftain.Simulation
                 // Ο παίκτης πρόλαβε να ρίξει την πίεση εγκαίρως!
                 IsGroaning = false;
                 _gracePeriodTimer = 0.0;
+                GD.Print("ΑΝΑΚΟΥΦΙΣΗ: Η πίεση έπεσε, το μέταλλο σταμάτησε να τρίζει.");
+
                 OnBoilerAlert?.Invoke("ΑΝΑΚΟΥΦΙΣΗ: Η πίεση έπεσε, το μέταλλο σταμάτησε να τρίζει.");
             }
 
@@ -132,6 +136,8 @@ namespace PermafrostChieftain.Simulation
                 IsHullCracked = true;
                 // Αρχικό μέγεθος της τρύπας
                 CrackSizeArea = GameSettings.Instance.InitialCrackLeakRate;
+                GD.Print("ΚΑΤΑΣΤΡΟΦΙΚΗ ΑΣΤΟΧΙΑ: Ρήγμα στο κέλυφος! Ανεξέλεγκτη διαρροή ατμού!");
+
                 OnBoilerAlert?.Invoke("ΚΑΤΑΣΤΡΟΦΙΚΗ ΑΣΤΟΧΙΑ: Ρήγμα στο κέλυφος! Ανεξέλεγκτη διαρροή ατμού!");
             }
         }
@@ -142,6 +148,8 @@ namespace PermafrostChieftain.Simulation
             {
                 IsHullCracked = false;
                 CrackSizeArea = 0.0; // Το μπάλωμα μηδενίζει το μέγεθος της τρύπας
+                GD.Print("ΕΠΙΣΚΕΥΗ: Το ρήγμα μπαλώθηκε επιτυχώς! Η διαρροή σταμάτησε.");
+
                 OnBoilerAlert?.Invoke("ΕΠΙΣΚΕΥΗ: Το ρήγμα μπαλώθηκε επιτυχώς! Η διαρροή σταμάτησε.");
             }
         }
@@ -169,6 +177,8 @@ namespace PermafrostChieftain.Simulation
             {
                 IsHullCracked = true;
                 CrackSizeArea = GameSettings.Instance.InitialCrackLeakRate;
+                GD.Print("ΚΑΤΑΣΤΡΟΦΙΚΗ ΑΣΤΟΧΙΑ: Ρήγμα στο κέλυφος! Ανεξέλεγκτη διαρροή ατμού!");
+
                 OnBoilerAlert?.Invoke("ΚΑΤΑΣΤΡΟΦΙΚΗ ΑΣΤΟΧΙΑ: Ρήγμα στο κέλυφος! Ανεξέλεγκτη διαρροή ατμού!");
             }
         }

@@ -1,3 +1,4 @@
+using Godot;
 using System;
 using System.Collections.Generic;
 
@@ -71,8 +72,8 @@ namespace PermafrostChieftain.Simulation
                 // Ορίζουμε έναν γενικό κανόνα για Optimal Workers. (Ιδανικά, στο μέλλον θα το διαβάζει από τα Settings)
                 int optimal = type switch
                 {
-                    JobType.StokeFurnace => 5,
-                    JobType.CleanSoot => 8,
+                    JobType.StokeFurnace => 15,
+                    JobType.CleanSoot => 5,
                     JobType.DaytimePatch => 10,
                     JobType.OperateTurbines => 3,
                     _ => 15 // Γενικό όριο για τις υπόλοιπες δουλειές
@@ -198,27 +199,39 @@ namespace PermafrostChieftain.Simulation
                         job.WorkRemaining -= workGenerated;
                         if (job.WorkRemaining <= 0)
                         {
-                            boiler.RemoveSoot(GameSettings.Instance.SootRemovedPerClean);
-                            logistics.AddCoal(GameSettings.Instance.CoalYieldFromCleaningSoot);
+                            // 1. Υπολογίζουμε ΠΟΣΗ καπνιά πραγματικά καθαρίσαμε (μέχρι το μέγιστο της βάρδιας ή όση έχει μείνει)
+                            double sootToClean = Math.Min(GameSettings.Instance.SootRemovedPerClean, boiler.CurrentSoot);
+                            boiler.RemoveSoot(sootToClean);
+
+                            // 2. Η ανταμοιβή του κάρβουνου είναι πλέον δυναμική! 
+                            // Π.χ. αν καθάρισε 20 καπνιά, παίρνει 20 * (Ρυθμός Ανταμοιβής)
+                            double coalReward = sootToClean * GameSettings.Instance.CoalYieldPerUnitOfSoot;
+                            logistics.AddCoal(coalReward);
+
                             job.SetWorkRemaining(GameSettings.Instance.CleanSootWorkRequired);
                         }
                         break;
 
                     case JobType.DaytimePatch:
+                        GD.Print($"Dayshift: {isDayShift}, is hull cracked {boiler.IsHullCracked}");
                         if (!isDayShift || !boiler.IsHullCracked) break;
 
-                        // Ελέγχουμε αν έχουμε το Patch πριν κάνουμε δουλειά, χωρίς να το καταναλώσουμε ακόμα
-                        if (!inventory.TryConsumeItem("Metal Patch")) break;
+                        // Απλός έλεγχος ύπαρξης. ΔΕΝ καταναλώνουμε τίποτα ακόμα!
+                        if (inventory.GetConsumableCount("Metal Patch") <= 0) break;
 
                         job.WorkRemaining -= workGenerated;
+                        GD.Print($"Metal Patching work remaining {job.WorkRemaining}");
 
                         if (job.WorkRemaining <= 0)
                         {
-                            // Τώρα που τελείωσε η δουλειά, καταναλώνουμε το αντικείμενο και φτιάχνουμε την τρύπα
+                            // Τώρα που τελείωσε η δουλειά, καταναλώνουμε το αντικείμενο ΠΡΑΓΜΑΤΙΚΑ
                             if (inventory.TryConsumeItem("Metal Patch"))
                             {
                                 boiler.ApplyMetalPatch();
+                                GD.Print("Το ρήγμα μπαλώθηκε με επιτυχία!");
                             }
+
+                            // Επαναφορά της μπάρας εργασίας για το επόμενο ρήγμα
                             job.SetWorkRemaining(GameSettings.Instance.PatchWorkRequired);
                         }
                         break;

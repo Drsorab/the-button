@@ -7,7 +7,8 @@ namespace PermafrostChieftain.Simulation
     {
         private static GameSettings _instance;
         public static GameSettings Instance => _instance ??= new GameSettings();
-
+        // Το μέγιστο όριο ατόμων που επιτρέπεται να χτυπήσουν/αρρωστήσουν στον ίδιο έλεγχο
+        public int MaxCasualtiesPerEvaluation { get; set; } = 2;
         public double StressBreakGracePeriod { get; set; } = 30.0;
         public double BaseStressReliefRate { get; set; } = 1.0;
         // Το ρίσκο να χτυπήσει (έγκαυμα/ατύχημα) κάποιος που δουλεύει ΠΑΝΩ στη γεννήτρια ανά λεπτό
@@ -31,8 +32,14 @@ namespace PermafrostChieftain.Simulation
         // Η εξωτερική θερμοκρασία που "παλεύει" να παγώσει τη γεννήτρια και την πόλη.
         public double AmbientWeatherTemperature { get; set; } = -30.0;
 
+        // Η θερμοκρασία του λέβητα στο δευτερόλεπτο 0 (Cold Start)
+        public double StartingCoreTemp { get; set; } = 120.0; // Βάλε -30.0 αν θες τον απόλυτο εφιάλτη!
+
+        // Η θερμοκρασία της πόλης στο δευτερόλεπτο 0
+        public double StartingCityTemp { get; set; } = -5.0; // Ξεκινάει στο "Livable" για να έχουν λίγο χρόνο
+
         // Πόσο γρήγορα το κρύο διαπερνά τη μόνωση της πόλης (City Cooling Rate)
-        public double CityWeatherCoolingCoefficient { get; set; } = 0.05;
+        public double CityWeatherCoolingCoefficient { get; set; } = 0.005;
 
         // Πόσο γρήγορα το κρύο ρίχνει τη θερμοκρασία του λέβητα όταν δεν καίει κάρβουνο
         public double GeneratorWeatherCoolingCoefficient { get; set; } = 0.15;
@@ -58,8 +65,8 @@ namespace PermafrostChieftain.Simulation
         // 3. ΓΕΝΝΗΤΡΙΑ: ΘΕΡΜΟΤΗΤΑ ΚΑΙ ΑΤΜΟΣ (GENERATOR CORE & STEAM)
         // ==========================================
         public double HeatGainPerKgCoal { get; set; } = 85.0;
-        public double BoilingPointThreshold { get; set; } = 250.0;
-        public double OptimalCoreTemp { get; set; } = 750.0;
+        public double BoilingPointThreshold { get; set; } = 100.0;
+        public double OptimalCoreTemp { get; set; } = 250.0;
 
         // Πόσος ατμός (πίεση) παράγεται ανά δευτερόλεπτο όταν βράζει το νερό
         public double BaseSteamGenerationRate { get; set; } = 0.05;
@@ -189,7 +196,7 @@ namespace PermafrostChieftain.Simulation
 
         // Ολοκλήρωση Εργασίας Καθαρισμού Καπνιάς
         public double CleanSootWorkRequired { get; set; } = 50.0; // Πόση "Δουλειά" (δευτερόλεπτα * εργάτες) χρειάζεται για 1 καθάρισμα
-        public double CoalYieldFromCleaningSoot { get; set; } = 10.0; // Ελάχιστο κάρβουνο ως ανταμοιβή
+        public double CoalYieldPerUnitOfSoot { get; set; } = 0.05; // Ελάχιστο κάρβουνο ως ανταμοιβή
         public double SootRemovedPerClean { get; set; } = 25.0; // Πόση καπνιά αφαιρείται σε κάθε ολοκλήρωση
 
         // Μπάλωμα Ημέρας (Daytime Patch)

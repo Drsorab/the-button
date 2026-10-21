@@ -1,3 +1,4 @@
+using Godot;
 using System;
 using System.Linq;
 
@@ -43,6 +44,26 @@ namespace PermafrostChieftain.Simulation
             GraveWorkers = GameSettings.Instance.StartingGrave;
         }
 
+        private string GetJobDisplayName(JobType type)
+        {
+            return type switch
+            {
+                JobType.StokeFurnace => "Στον Λέβητα (Stokers)",
+                JobType.CleanSoot => "Καθαρισμός Καπνιάς",
+                JobType.DaytimePatch => "Επικίνδυνο Μπάλωμα",
+                JobType.NightHullRepair => "Νυχτερινή Επισκευή",
+                JobType.WorkshopCraftPatch => "Μηχανουργείο (Crafting)",
+                JobType.WorkshopCraftFuse => "Μηχανουργείο (Fuses)",
+                JobType.WorkshopUpkeep => "Συντήρηση Μηχανουργείου",
+                JobType.CoalMining => "Ορυχείο Άνθρακα",
+                JobType.ScrapScavenging => "Ανασκαφή Πάγων",
+                JobType.MetalSmelting => "Χυτήριο",
+                JobType.OperateTurbines => "Τουρμπίνες",
+                JobType.IntensiveCare => "Εντατική Θεραπεία",
+                _ => type.ToString()
+            };
+        }
+
         public int GetTotalAssignedWorkers()
         {
             return _jobManager.Jobs.Values.Sum(job => job.AssignedWorkers);
@@ -70,7 +91,7 @@ namespace PermafrostChieftain.Simulation
             _injuryCheckTimer += deltaTime;
             if (_injuryCheckTimer >= InjuryCheckInterval)
             {
-                EvaluateWorkplaceHazards();
+                EvaluateWorkplaceHazards(thermo);
                 _injuryCheckTimer = 0.0;
             }
         }
@@ -118,9 +139,11 @@ namespace PermafrostChieftain.Simulation
             }
         }
 
-        private void EvaluateWorkplaceHazards()
+        // Σημείωση: Πρέπει πλέον να δέχεται το thermo από το ProcessTick του Orchestrator
+        public void EvaluateWorkplaceHazards(ThermodynamicsSubsystem thermo)
         {
             Random rng = new Random();
+            int casualtiesThisTick = 0; // Μετρητής για το Casualty Cap
 
             double citySicknessRate = CurrentCityStage switch
             {
@@ -132,30 +155,56 @@ namespace PermafrostChieftain.Simulation
                 _ => 0.0
             };
 
-            double generatorInjuryRate = GameSettings.Instance.GeneratorJobInjuryRate;
+            // ΑΝΑΚΑΤΕΜΑ: Ανακατεύουμε τις δουλειές για να είναι δίκαιο το ποιος θα δεχτεί το χτύπημα
+            var shuffledJobs = _jobManager.Jobs.Values.OrderBy(x => rng.Next()).ToList();
 
-            foreach (var job in _jobManager.Jobs.Values)
+            foreach (var job in shuffledJobs)
             {
                 if (job.AssignedWorkers <= 0) continue;
 
-                // 1. Βασικό Ρίσκο (Κρύο vs Μηχανικός Κίνδυνος)
                 bool isNearGenerator = IsWorkingNearGenerator(job.Type);
-                double baseHazard = isNearGenerator ? generatorInjuryRate : citySicknessRate;
+                double baseHazard = 0.0;
+                bool isWeatherRelated = !isNearGenerator;
 
-                // 2. ΝΕΟ: Υπολογισμός Συνωστισμού (Overcrowding Penalty)
+                // 1. ΔΥΝΑΜΙΚΟΣ ΚΙΝΔΥΝΟΣ ΒΑΣΕΙ ΘΕΡΜΟΚΡΑΣΙΑΣ (HEAT PROTECTION)
+                if (isNearGenerator)
+                {
+                    double safeTemp = 80.0;
+                    double heatProtection = 1.0; // Ξεκινάμε θεωρώντας τους 100% προστατευμένους
+
+                    if (thermo.CoreTemperature < safeTemp)
+                    {
+                        // Αν η γεννήτρια κρυώσει πολύ (από 80 προς τα κάτω), χάνουν σταδιακά την προστασία
+                        double tempRange = safeTemp - GameSettings.Instance.AmbientWeatherTemperature;
+                        double currentTempAboveAmbient = thermo.CoreTemperature - GameSettings.Instance.AmbientWeatherTemperature;
+                        heatProtection = Math.Clamp(currentTempAboveAmbient / tempRange, 0.0, 1.0);
+                    }
+
+                    // Εφαρμογή των κινδύνων (Με heatProtection = 1.0, το coldHazard γίνεται 0.0)
+                    double coldHazard = citySicknessRate * (1.0 - heatProtection);
+
+                    // Εγκαύματα/Τραυματισμοί υφίστανται μόνο όταν η μηχανή καίει (heatProtection > 0)
+                    double burnHazard = GameSettings.Instance.GeneratorJobInjuryRate * heatProtection;
+
+                    baseHazard = coldHazard + burnHazard;
+
+                    if (coldHazard > burnHazard) isWeatherRelated = true;
+                }
+                else
+                {
+                    baseHazard = citySicknessRate;
+                }
+
+                // 2. Πέναλτι Συνωστισμού (Overcrowding)
                 double overcrowdingPenalty = 0.0;
                 if (job.AssignedWorkers > job.OptimalWorkers)
                 {
                     int extraWorkers = job.AssignedWorkers - job.OptimalWorkers;
-                    // π.χ. Αν έχεις 5 παραπάνω, το ρίσκο ανεβαίνει κατά 5% για ΟΛΟΥΣ σε αυτή τη δουλειά
                     overcrowdingPenalty = extraWorkers * GameSettings.Instance.OvercrowdingHazardPenalty;
                 }
 
-                // 3. Τελικό Ρίσκο
+                // 3. Τελικός Υπολογισμός
                 double totalHazard = baseHazard + overcrowdingPenalty;
-                bool isWeatherRelated = !isNearGenerator;
-
-                // Κανονικοποίηση βάσει του χρόνου ελέγχου (ανά 60 δευτερόλεπτα)
                 double normalizedHazardPerTick = totalHazard * (InjuryCheckInterval / 60.0);
 
                 int currentWorkers = job.AssignedWorkers;
@@ -164,6 +213,13 @@ namespace PermafrostChieftain.Simulation
                     if (rng.NextDouble() < normalizedHazardPerTick)
                     {
                         ApplyInjury(job, rng, isWeatherRelated, overcrowdingPenalty > 0);
+
+                        // ΝΕΟ: Αυξάνουμε τον μετρητή. Αν φτάσουμε το όριο, σταματάμε τον έλεγχο!
+                        casualtiesThisTick++;
+                        if (casualtiesThisTick >= GameSettings.Instance.MaxCasualtiesPerEvaluation)
+                        {
+                            return; // Βγαίνουμε εντελώς από τη μέθοδο, γλιτώνοντας τους υπόλοιπους
+                        }
                     }
                 }
             }
@@ -175,6 +231,9 @@ namespace PermafrostChieftain.Simulation
             job.AssignedWorkers--;
             HealthyWorkers--;
 
+            string jobName = GetJobDisplayName(job.Type);
+            string debugPrefix = $"[DEBUG - {jobName} ({job.AssignedWorkers}/{job.OptimalWorkers})]: ";
+
             bool isCatastrophic = isWeatherRelated &&
                                   (CurrentCityStage == CityLivingStage.Freezing) &&
                                   (rng.NextDouble() < GameSettings.Instance.DeathRollProbability);
@@ -184,30 +243,39 @@ namespace PermafrostChieftain.Simulation
                 if (rng.NextDouble() < 0.5)
                 {
                     DeadWorkers++;
-                    OnCasualtyOccurred?.Invoke($"ΘΑΝΑΤΗΦΟΡΟ ΨΥΧΟΣ: Ένας κάτοικος υπέκυψε στην παγωνιά! (Στάδιο: {CurrentCityStage})");
+                    string msg = $"ΘΑΝΑΤΗΦΟΡΟ ΨΥΧΟΣ: Ένας κάτοικος υπέκυψε στην παγωνιά! (Στάδιο: {CurrentCityStage})";
+                    GD.Print(debugPrefix + msg); // Debug Console Output
+                    OnCasualtyOccurred?.Invoke(msg);
                 }
                 else
                 {
                     GraveWorkers++;
-                    OnCasualtyOccurred?.Invoke($"ΚΡΥΟΠΑΓΗΜΑ: Ένας εργάτης μεταφέρθηκε κλινήρης! (Στάδιο: {CurrentCityStage})");
+                    string msg = $"ΚΡΥΟΠΑΓΗΜΑ: Ένας εργάτης μεταφέρθηκε κλινήρης! (Στάδιο: {CurrentCityStage})";
+                    GD.Print(debugPrefix + msg);
+                    OnCasualtyOccurred?.Invoke(msg);
                 }
             }
             else
             {
                 SickWorkers++;
 
-                // Δυναμικά Μηνύματα
-                if (isOvercrowded && rng.NextDouble() < 0.3) // 30% πιθανότητα το μήνυμα να κράξει τον συνωστισμό
+                if (isOvercrowded && rng.NextDouble() < 0.3)
                 {
-                    OnCasualtyOccurred?.Invoke($"ΑΤΥΧΗΜΑ ΣΥΝΩΣΤΙΣΜΟΥ: Επικρατεί χάος στο τμήμα '{job.Type}'. Ένας εργάτης τραυματίστηκε!");
+                    string msg = $"ΑΤΥΧΗΜΑ ΣΥΝΩΣΤΙΣΜΟΥ: Επικρατεί χάος στο τμήμα. Ένας εργάτης τραυματίστηκε!";
+                    GD.Print(debugPrefix + msg);
+                    OnCasualtyOccurred?.Invoke(msg);
                 }
                 else if (isWeatherRelated)
                 {
-                    OnCasualtyOccurred?.Invoke($"ΑΣΘΕΝΕΙΑ: Ένας εργάτης αρρώστησε λόγω του κρύου.");
+                    string msg = $"ΑΣΘΕΝΕΙΑ: Ένας εργάτης αρρώστησε λόγω του κρύου.";
+                    GD.Print(debugPrefix + msg);
+                    OnCasualtyOccurred?.Invoke(msg);
                 }
                 else
                 {
-                    OnCasualtyOccurred?.Invoke($"ΤΡΑΥΜΑΤΙΣΜΟΣ ΕΡΓΑΣΙΑΣ: Εγκαύματα/Τραυματισμός κατά τη διάρκεια εργασίας στη γεννήτρια.");
+                    string msg = $"ΤΡΑΥΜΑΤΙΣΜΟΣ ΕΡΓΑΣΙΑΣ: Εγκαύματα/Τραυματισμός κατά τη διάρκεια εργασίας στη γεννήτρια.";
+                    GD.Print(debugPrefix + msg);
+                    OnCasualtyOccurred?.Invoke(msg);
                 }
             }
         }

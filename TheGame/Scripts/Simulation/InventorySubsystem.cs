@@ -1,3 +1,4 @@
+using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,6 +42,7 @@ namespace PermafrostChieftain.Simulation
             var item = Items.FirstOrDefault(i => i.Name == itemName && i.Category == ItemCategory.Consumable);
             if (item != null)
             {
+                GD.Print("Patch Consumed");
                 Items.Remove(item);
                 return true;
             }

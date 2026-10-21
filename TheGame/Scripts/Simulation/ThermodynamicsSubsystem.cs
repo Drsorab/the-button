@@ -112,7 +112,17 @@ namespace PermafrostChieftain.Simulation
             // Λανθάνουσα Θερμότητα: Μετατροπή πλεονάσματος σε ατμό αν βράζει το νερό
             if (netEnergy > 0 && CoreTemperature >= GameSettings.Instance.BoilingPointThreshold)
             {
-                double energyForSteam = netEnergy * GameSettings.Instance.LatentHeatSteamConversionRatio;
+                // Υπολογίζουμε πόσο κοντά είμαστε στους 250°C
+                double tempRange = GameSettings.Instance.OptimalCoreTemp - GameSettings.Instance.BoilingPointThreshold;
+                double currentProgress = CoreTemperature - GameSettings.Instance.BoilingPointThreshold;
+
+                // Απόδοση από 0.1 (10% στους 100°C) έως 1.0 (100% στους 250°C)
+                double steamEfficiency = Math.Clamp(0.1 + (0.9 * (currentProgress / tempRange)), 0.1, 1.0);
+
+                // Πολλαπλασιάζουμε το Latent Ratio με την απόδοση
+                double dynamicConversionRatio = GameSettings.Instance.LatentHeatSteamConversionRatio * steamEfficiency;
+
+                double energyForSteam = netEnergy * dynamicConversionRatio;
                 netEnergy -= energyForSteam;
                 steamGenerated = energyForSteam * GameSettings.Instance.BaseSteamGenerationRate * deltaTime;
             }

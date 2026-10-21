@@ -64,7 +64,10 @@ namespace PermafrostChieftain.Simulation
             _logistics.Initialize();
             _population.Initialize();
             _boiler.Initialize(100.0);
-            _thermo.Initialize(GameSettings.Instance.AmbientWeatherTemperature, GameSettings.Instance.AmbientWeatherTemperature);
+            _thermo.Initialize(
+                    GameSettings.Instance.StartingCoreTemp,
+                    GameSettings.Instance.StartingCityTemp
+                );
 
             if (isNewGame)
             {
